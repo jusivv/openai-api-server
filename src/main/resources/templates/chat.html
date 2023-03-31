@@ -1,0 +1,128 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>ChatGPT</title>
+    <link rel="stylesheet" href="/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" href="/app/chat.css">
+    <link rel="stylesheet" href="/highlight/default.min.css">
+    <link href="/highlight/idea.min.css">
+    <script src="/vue/vue.global.js"></script>
+    <script src="/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="/highlight/highlight.min.js"></script>
+</head>
+<body>
+    <div id="app" class="d-flex flex-column h-100 m-3">
+        <div style="height: 60px">
+            <h4>ChatGPT</h4>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item active" aria-current="page">{{totalTokens}}</li>
+                    <li class="breadcrumb-item active" aria-current="page">[[${@app.maxTokens}]]</li>
+                </ol>
+            </nav>
+        </div>
+        <div ref="scrollDiv" class="overflow-auto flex-fill">
+            <div v-for="message in messages">
+                <div class="speaker">{{message.isAnswer ? 'ChatGPT:' : 'Me:'}}&nbsp;({{now()}})</div>
+                <div v-if="message.isAnswer" class="alert alert-light" v-html="message.content">
+                </div>
+                <div v-else class="alert alert-info">{{message.content}}</div>
+            </div>
+            <div class="spinner-border text-secondary" role="status" :hidden="!working">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+        <div class="input-group" style="height: 80px">
+            <textarea v-model="question" class="form-control" placeholder="Let's talk" aria-describedby="btn-send" rows="1" :disabled="working"></textarea>
+<!--            <button id="btn-send" type="button" class="btn btn-primary" :disabled="!canSend" @click="send">Send</button>-->
+            <div id="btn-send" class="btn-group" role="group" aria-label="Basic outlined example">
+                <button type="button" class="btn btn-outline-primary" :disabled="!canSend" @click="send">Send</button>
+                <button type="button" class="btn btn-outline-primary" :disabled="working" @click="clear">Clear</button>
+            </div>
+        </div>
+    </div>
+    <script type="module">
+const { createApp } = Vue
+import { post } from "/app/request.js"
+import { marked } from "/md/marked.esm.js";
+const prompt = "你好！我的AI助手"
+createApp({
+    data() {
+        return {
+            question: prompt,
+            conversationId: "",
+            messages: [],
+            totalTokens: 0,
+            working: false
+        }
+    },
+    computed: {
+        canSend() {
+            const { question, working } = this
+            return question.trim().length > 0 && !working
+        }
+    },
+    updated() {
+        hljs.highlightAll()
+        let div = this.$refs["scrollDiv"]
+        div.scrollTo({ top: div.scrollHeight, behavior: 'smooth' });
+    },
+    methods: {
+        send() {
+            const { question, conversationId, ask } = this
+            if (question) {
+                ask(question, conversationId === "")
+            }
+        },
+        clear() {
+            this.conversationId = ""
+            this.messages = []
+            this.question = prompt
+            this.totalTokens = 0
+        },
+        ask(content, isPrompt) {
+            if (content) {
+                this.messages.push({
+                    isAnswer: false,
+                    content
+                })
+                this.working = true
+                let completion = null
+                if (isPrompt) {
+                    completion = post("/chat/new", {
+                        question: content
+                    })
+                } else {
+                    completion = post("/chat/ask", {
+                        question: content,
+                        conversationId: this.conversationId
+                    })
+                }
+                completion.then(res => {
+                    if (res.conversationId) {
+                        this.conversationId = res.conversationId
+                    }
+                    this.messages.push({
+                        isAnswer: true,
+                        content: marked.parse(res.answer)
+                    })
+                    this.totalTokens = res.totalTokens
+                    this.question = ""
+                }).catch((err) => {
+                    // TODO show error
+                    alert(err)
+                }).finally(() => {
+                    this.working = false
+                })
+            }
+        },
+        now() {
+            const now = new Date()
+            return (now.getHours() < 10 ? "0" + now.getHours() : now.getHours()) + ":"
+                + (now.getMinutes() < 10 ? "0" + now.getMinutes() : now.getMinutes())
+        }
+    }
+}).mount('#app')
+    </script>
+</body>
+</html>

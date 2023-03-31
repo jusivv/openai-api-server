@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: openai-api-server
+
+openai:
+  apiKey: ${OPENAI_API_KEY:}
+  model: ${OPENAI_MODEL:gpt-3.5-turbo}
+  temperature: ${OPENAI_TEMPERATURE:1}
+  maxTokens: ${OPENAI_MAX_TOKENS:2048}
+  apiServer:
+    schema: ${OPENAI_SERVER_SCHEMA:https}
+    host: ${OPENAI_SERVER_HOST:api.openai.com}
+    port: ${OPENAI_SERVER_PORT:443}
+    basePath: ${OPENAI_SERVER_BASE_PATH:v1}
+  proxy:
+    type: ${OPENAI_PROXY_TYPE:}
+    host: ${OPENAI_PROXY_HOST:}
+    port: ${OPENAI_PROXY_PORT:}
+    user: ${OPENAI_PROXY_USER:}
+    pass: ${OPENAI_PROXY_PASS:}
+app:
+  serverUrl: ${SERVER_URL:http://localhost:8080}
+
