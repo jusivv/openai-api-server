@@ -6,11 +6,13 @@ import java.util.List;
 public class ChatContext {
     private List<ChatMessage> messageList;
     private List<TokenUsage> tokenUsageList;
+    private int completionTokens;
     private int totalTokens;
 
     public ChatContext() {
         messageList = new ArrayList<>();
         tokenUsageList = new ArrayList<>();
+        completionTokens = 0;
         totalTokens = 0;
     }
 
@@ -25,8 +27,13 @@ public class ChatContext {
         TokenUsage tokenUsage = new TokenUsage();
         tokenUsage.setPromptTokens(promptTokens);
         tokenUsage.setCompletionTokens(completionTokens);
+        this.completionTokens += completionTokens;
         tokenUsage.setTotalTokens(totalTokens);
         this.totalTokens += totalTokens;
+    }
+
+    public int getCompletionTokens() {
+        return completionTokens;
     }
 
     public int getTotalTokens() {
@@ -45,5 +52,9 @@ public class ChatContext {
             }
         }
         return null;
+    }
+
+    public boolean isEmpty() {
+        return messageList.isEmpty();
     }
 }

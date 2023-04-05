@@ -1,8 +1,13 @@
 package org.coodex.openai.api.server.domain;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.*;
+import okhttp3.internal.sse.RealEventSource;
+import okhttp3.sse.EventSource;
+import okhttp3.sse.EventSourceListener;
 import org.coodex.openai.api.server.model.*;
+import org.coodex.openai.api.server.util.IChatCompletionSseCallback;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -95,7 +100,9 @@ public class ChatCompletionInvoker {
         this.objectMapper = objectMapper;
     }
 
-    private void request(ChatRole role, String content, ChatContext context) throws IOException {
+    private Request buildChatCompletionRequest(
+            ChatRole role, String content, ChatContext context, boolean withStream)
+            throws JsonProcessingException {
         context.addMessage(role, content);
         ChatCompletionReq req = new ChatCompletionReq();
         req.setModel(model);
@@ -104,11 +111,17 @@ public class ChatCompletionInvoker {
         }
         req.setTemperature(temperature);
         req.setMaxTokens(maxTokens);
-        RequestBody body = RequestBody.create(objectMapper.writeValueAsBytes(req), MediaType.parse("application/json"));
-        Request request = new Request.Builder().url(httpUrl)
-            .addHeader("Authorization", "Bearer " + apiKey)
-            .post(body).build();
-        Response response = httpClient.newCall(request).execute();
+        req.setStream(withStream);
+        RequestBody body = RequestBody.create(objectMapper.writeValueAsBytes(req),
+                MediaType.parse("application/json"));
+        return new Request.Builder().url(httpUrl)
+                .addHeader("Authorization", "Bearer " + apiKey)
+                .post(body).build();
+    }
+
+    private void request(ChatRole role, String content, ChatContext context) throws IOException {
+        Response response = httpClient.newCall(buildChatCompletionRequest(role, content, context, false))
+                .execute();
         if (response.isSuccessful()) {
             ChatCompletionResp resp = objectMapper.readValue(response.body().string(), ChatCompletionResp.class);
             if (resp != null){
@@ -127,14 +140,66 @@ public class ChatCompletionInvoker {
         }
     }
 
-    public ChatContext begin(String prompt) throws IOException {
-        ChatContext context = new ChatContext();
-        request(ChatRole.SYSTEM, prompt, context);
-        return context;
+    public String ask(String question, ChatContext context) throws IOException {
+        request(!context.isEmpty() ? ChatRole.USER : ChatRole.SYSTEM, question, context);
+        return context.getLastAnswer();
     }
 
-    public String ask(String question, ChatContext context) throws IOException {
-        request(ChatRole.USER, question, context);
-        return context.getLastAnswer();
+    private void requestWithSse(ChatRole role, String content, ChatContext context,
+                                IChatCompletionSseCallback callback)
+            throws JsonProcessingException {
+        final SseRespBuffer buffer = new SseRespBuffer();
+        RealEventSource eventSource = new RealEventSource(
+                buildChatCompletionRequest(role, content, context, true),
+                new EventSourceListener() {
+                    @Override
+                    public void onClosed(@NotNull EventSource eventSource) {
+                        super.onClosed(eventSource);
+                    }
+
+                    @Override
+                    public void onEvent(@NotNull EventSource eventSource, @Nullable String id, @Nullable String type, @NotNull String data) {
+                        if (!data.equals("[DONE]")) {
+                            try {
+                                ChatCompletionSseResp resp = objectMapper.readValue(data, ChatCompletionSseResp.class);
+                                ChatMessage delta = resp.getChoices()[0].getDelta();
+                                if (delta != null && delta.getContent() != null) {
+                                    buffer.addToken(delta.getContent());
+                                    callback.speak(delta.getContent(), buffer.getCompletionTokens(), buffer.getTotalTokens(), null);
+                                }
+                            } catch (JsonProcessingException e) {
+                                onFailure(
+                                        eventSource, e,
+                                        new Response.Builder().code(500).body(ResponseBody
+                                                .create(e.getLocalizedMessage(), MediaType.get("text/plain"))).build());
+                            }
+
+                        } else {
+                            context.addMessage(role, buffer.getContent());
+                            context.addTokenUsage(0, buffer.getTotalTokens(), buffer.getTotalTokens());
+                            callback.speak(data, buffer.getCompletionTokens(), buffer.getTotalTokens(), null);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NotNull EventSource eventSource, @Nullable Throwable t, @Nullable Response response) {
+                        super.onFailure(eventSource, t, response);
+                        log.error(t.getLocalizedMessage(), t);
+                        callback.speak(null, buffer.getCompletionTokens(), buffer.getTotalTokens(), t.getLocalizedMessage());
+                        eventSource.cancel();
+                    }
+
+                    @Override
+                    public void onOpen(@NotNull EventSource eventSource, @NotNull Response response) {
+                        super.onOpen(eventSource, response);
+                    }
+                }
+        );
+        eventSource.connect(httpClient);
+    }
+
+    public void askWithSse(String question, ChatContext context, IChatCompletionSseCallback callback)
+            throws JsonProcessingException {
+        requestWithSse(!context.isEmpty() ? ChatRole.USER : ChatRole.SYSTEM, question, context, callback);
     }
 }

@@ -14,6 +14,7 @@
 	<name>openai-api-server</name>
 	<properties>
 		<java.version>1.8</java.version>
+		<okhttp.version>4.10.0</okhttp.version>
 	</properties>
 	<dependencies>
 <!--		<dependency>-->
@@ -36,7 +37,12 @@
 		<dependency>
 			<groupId>com.squareup.okhttp3</groupId>
 			<artifactId>okhttp</artifactId>
-			<version>4.10.0</version>
+			<version>${okhttp.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.squareup.okhttp3</groupId>
+			<artifactId>okhttp-sse</artifactId>
+			<version>${okhttp.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.hibernate.validator</groupId>

@@ -3,6 +3,7 @@ package org.coodex.openai.api.server.model;
 public class ChatResp {
     private String conversationId;
     private String answer;
+    private int completionTokens;
     private int totalTokens;
 
     public String getConversationId() {
@@ -19,6 +20,14 @@ public class ChatResp {
 
     public void setAnswer(String answer) {
         this.answer = answer;
+    }
+
+    public int getCompletionTokens() {
+        return completionTokens;
+    }
+
+    public void setCompletionTokens(int completionTokens) {
+        this.completionTokens = completionTokens;
     }
 
     public int getTotalTokens() {

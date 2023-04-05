@@ -2,7 +2,8 @@ package org.coodex.openai.api.server.controller;
 
 import org.coodex.openai.api.server.domain.ConversationManager;
 import org.coodex.openai.api.server.model.ChatContext;
-import org.coodex.openai.api.server.model.ChatMessage;
+import org.coodex.openai.api.server.model.ContextListResp;
+import org.coodex.openai.api.server.model.ContextResp;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,20 +22,29 @@ public class ChatContextSvc {
     }
 
     @GetMapping("/list")
-    public String[] listContext() {
-        return conversationManager.getAllKeys();
+    public ContextListResp listContext() {
+        ContextListResp resp = new ContextListResp();
+        resp.setConversations(conversationManager.getAllKeys());
+        return resp;
+    }
+
+    @GetMapping("/create")
+    public ContextResp createChatContext() {
+        ContextResp resp = new ContextResp();
+        ChatContext context = new ChatContext();
+        resp.setConversationId(conversationManager.addConversation(context));
+        return resp;
     }
 
     @GetMapping("/get/{id}")
-    public ChatMessage[] getChatContext(@PathVariable("id") String conversationId) {
+    public ChatContext getChatContext(@PathVariable("id") String conversationId) {
         ChatContext context = conversationManager.getContext(conversationId);
         Assert.notNull(context, "context not found");
-        return context.getMessages();
+        return context;
     }
 
     @GetMapping("/delete/{id}")
-    public String deleteChat(@PathVariable("id") String conversationId) {
-        conversationManager.removeContext(conversationId);
-        return conversationId;
+    public ChatContext deleteChat(@PathVariable("id") String conversationId) {
+        return conversationManager.removeContext(conversationId);
     }
 }

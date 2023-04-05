@@ -11,100 +11,185 @@
     <script src="/highlight/highlight.min.js"></script>
 </head>
 <body>
-    <div id="app" class="d-flex flex-column h-100 m-3">
-        <div style="height: 60px">
+    <div id="app" class="d-flex flex-column h-100">
+        <div class="p-2" style="height: 60px">
             <h4>ChatGPT</h4>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item active" aria-current="page">{{totalTokens}}</li>
-                    <li class="breadcrumb-item active" aria-current="page">[[${@app.maxTokens}]]</li>
-                </ol>
-            </nav>
         </div>
-        <div ref="scrollDiv" class="overflow-auto flex-fill">
-            <div v-for="message in messages">
-                <div class="speaker">{{message.isAnswer ? 'ChatGPT:' : 'Me:'}}&nbsp;({{now()}})</div>
-                <div v-if="message.isAnswer" class="alert alert-light" v-html="message.content">
+        <div class="d-flex flex-row h-100">
+            <div style="width: 15%" class="d-flex flex-column h-100 p-2">
+                <div class="flex-fill overflow-auto">
+                    <div class="list-group">
+                        <button v-for="(c, i) in conversationList" type="button"
+                                :class="c === conversationId ? 'list-group-item list-group-item-action active' : 'list-group-item list-group-item-action'"
+                                @click="switchConversation(c)">
+                            Chat-{{i}}
+                        </button>
+                    </div>
                 </div>
-                <div v-else class="alert alert-info">{{message.content}}</div>
+                <div style="height: 200px;">
+                    <button type="button" class="btn btn-primary w-75 m-2" @click="newChat">New chat</button>
+                    <button type="button" class="btn btn-danger w-75 m-2">Clear all</button>
+                    <div class="form-check w-75 m-2">
+                        <input class="form-check-input" type="checkbox" id="showMd" v-model="showMarkdown">
+                        <label class="form-check-label" style="font-size: 12px" for="showMd">
+                            Markdown
+                        </label>
+                    </div>
+                    <div class="form-check w-75 m-2">
+                        <input class="form-check-input" type="checkbox" id="useStream" v-model="useStream">
+                        <label class="form-check-label" style="font-size: 12px" for="useStream">
+                            Stream
+                        </label>
+                    </div>
+                </div>
             </div>
-            <div class="spinner-border text-secondary" role="status" :hidden="!working">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-        </div>
-        <div class="input-group" style="height: 80px">
-            <textarea v-model="question" class="form-control" placeholder="Let's talk" aria-describedby="btn-send" rows="1" :disabled="working"></textarea>
-<!--            <button id="btn-send" type="button" class="btn btn-primary" :disabled="!canSend" @click="send">Send</button>-->
-            <div id="btn-send" class="btn-group" role="group" aria-label="Basic outlined example">
-                <button type="button" class="btn btn-outline-primary" :disabled="!canSend" @click="send">Send</button>
-                <button type="button" class="btn btn-outline-primary" :disabled="working" @click="clear">Clear</button>
+            <div class="d-flex flex-column flex-fill">
+                <div ref="chat-content" class="overflow-auto flex-fill p-5" :hidden="showMarkdown">
+                    <div v-for="message in messages" class="p-2">
+                        <div class="speaker">{{message.isAnswer ? 'ChatGPT:' : 'Me:'}}&nbsp;({{now()}})</div>
+                        <div v-if="message.isAnswer" class="alert alert-light" v-html="parseHtml(message.content)">
+                        </div>
+                        <div v-else class="alert alert-info">{{message.content}}</div>
+                    </div>
+                    <div v-if="!useStream && working" class="spinner-border text-secondary p-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <div class="overflow-auto flex-fill" :hidden="!showMarkdown">
+                    <textarea style="height: 100%; width: 100%">{{mdContent}}</textarea>
+                </div>
+<!--                <div class="p-3" style="height: 20px;">-->
+<!--                    <p class="label-token">tokens: {{totalTokens}} / [[${@app.maxTokens}]]</p>-->
+<!--                </div>-->
+                <div class="input-group p-2" style="height: 80px">
+                    <textarea v-model="question" class="form-control" placeholder="Let's talk" aria-describedby="btn-send" rows="1" :disabled="working"></textarea>
+                    <div id="btn-send" class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" :disabled="!canSend" @click="send">Send</button>
+                        <button type="button" class="btn btn-outline-primary" :disabled="working" @click="deleteConversation">Delete</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     <script type="module">
-const { createApp } = Vue
-import { post } from "/app/request.js"
+const { createApp, nextTick } = Vue
+import { post, get } from "/app/request.js"
 import { marked } from "/md/marked.esm.js";
 const prompt = "你好！我的AI助手"
 createApp({
     data() {
         return {
-            question: prompt,
+            question: "",
             conversationId: "",
             messages: [],
             totalTokens: 0,
-            working: false
+            conversationList: [],
+            working: false,
+            lastContentHeight: 0,
+            showMarkdown: false,
+            useStream: true,
         }
     },
     computed: {
         canSend() {
-            const { question, working } = this
-            return question.trim().length > 0 && !working
+            const { conversationId, question, working } = this
+            return question.trim().length > 0 && !working && conversationId
+        },
+        mdContent() {
+            const {messages, today} = this
+            let md = "# Chat at " + today()
+            if (messages) {
+                messages.forEach(m => {
+                    md += "\n\n" + (!m.isAnswer ? "## " : "") + m.content
+                })
+            }
+            return md
         }
     },
     updated() {
-        hljs.highlightAll()
-        let div = this.$refs["scrollDiv"]
-        div.scrollTo({ top: div.scrollHeight, behavior: 'smooth' });
+        // this.flushContent()
+    },
+    mounted() {
+        new MutationObserver(() => {
+            this.flushContent()
+        }).observe(this.$refs["chat-content"], {
+            childList: true
+        })
+        this.listConversation()
     },
     methods: {
+        listConversation() {
+            get("/context/list")
+                .then(data => this.conversationList = data.conversations)
+                .catch(err => console.log("get context list failed, %s", err))
+        },
+        getContentHeight() {
+            let div = this.$refs["chat-content"]
+            if (div) {
+                return div.scrollHeight
+            } else {
+                return 0
+            }
+        },
+        flushContent() {
+            hljs.highlightAll()
+            let div = this.$refs["chat-content"]
+            if (div.offsetHeight < div.scrollHeight) {
+                div.scrollTo({ top: this.lastContentHeight, behavior: 'smooth' });
+            }
+        },
+        parseHtml(src) {
+            return marked.parse(src)
+        },
+        newChat() {
+            const { ask, clear, askWithSse, useStream } = this
+            clear()
+            get("/context/create").then(data => {
+                if (data.conversationId) {
+                    this.conversationId = data.conversationId
+                    this.conversationList.push(this.conversationId)
+                    if (useStream) {
+                        askWithSse(prompt, this.conversationId)
+                    } else {
+                        ask(prompt, this.conversationId)
+                    }
+                }
+            }).catch(err => alert(err))
+        },
         send() {
-            const { question, conversationId, ask } = this
-            if (question) {
-                ask(question, conversationId === "")
+            const { question, conversationId, useStream, ask, askWithSse } = this
+            if (question && conversationId) {
+                if (useStream) {
+                    askWithSse(question, conversationId)
+                } else {
+                    ask(question, conversationId)
+                }
             }
         },
         clear() {
             this.conversationId = ""
             this.messages = []
-            this.question = prompt
+            this.question = ""
             this.totalTokens = 0
         },
-        ask(content, isPrompt) {
-            if (content) {
+        ask(content, conversationId) {
+            this.useLoadingState = true
+            if (content && conversationId) {
+                // record Y
+                this.lastContentHeight = this.getContentHeight()
+                // push question
                 this.messages.push({
                     isAnswer: false,
                     content
                 })
                 this.working = true
-                let completion = null
-                if (isPrompt) {
-                    completion = post("/chat/new", {
-                        question: content
-                    })
-                } else {
-                    completion = post("/chat/ask", {
-                        question: content,
-                        conversationId: this.conversationId
-                    })
-                }
-                completion.then(res => {
-                    if (res.conversationId) {
-                        this.conversationId = res.conversationId
-                    }
+                post("/chat/ask", {
+                    question: content,
+                    conversationId: conversationId
+                }).then(res => {
                     this.messages.push({
                         isAnswer: true,
-                        content: marked.parse(res.answer)
+                        content: res.answer
                     })
                     this.totalTokens = res.totalTokens
                     this.question = ""
@@ -116,10 +201,89 @@ createApp({
                 })
             }
         },
-        now() {
-            const now = new Date()
+        askWithSse(content, conversationId){
+            this.useLoadingState = false
+            if (content && conversationId) {
+                this.lastContentHeight = this.getContentHeight()
+                this.messages.push({
+                    isAnswer: false,
+                    content
+                })
+                this.working = true
+                let index = this.messages.length
+                this.messages.push({
+                    isAnswer: true,
+                    content: ""
+                })
+                const evtSource = new EventSource(
+                    encodeURI(
+                        "/chat/sseAsk/" + conversationId + "/" + content
+                    ),
+                    {
+                        withCredentials: true
+                    }
+                )
+                evtSource.onmessage = evt => {
+                    const { data } = evt
+                    if (data === "[DONE]") {
+                        this.flushContent()
+                        this.working = false
+                        this.question = ""
+                        evtSource.close()
+                    } else {
+                        let res = JSON.parse(data)
+                        this.messages[index].content += res.answer || ""
+                    }
+                }
+                evtSource.onerror = evt => {
+                    this.working = false
+                    if (evtSource.readyState === EventSource.CLOSED) {
+                        console.log("close")
+                    } else {
+                        alert("error: " + JSON.stringify(evt))
+                        evtSource.close()
+                    }
+                }
+            }
+        },
+        switchConversation(id) {
+            const { clear } = this
+            get("/context/get/" + id).then(data => {
+                clear()
+                this.conversationId = id
+                data.messages.map(m => {
+                    this.messages.push({
+                        isAnswer: m.role === "assistant",
+                        content: m.content
+                    })
+                })
+                this.totalTokens = data.totalTokens
+            }).catch(err => {
+                alert(err)
+            })
+        },
+        deleteConversation() {
+            const { conversationId, clear } = this
+            if (conversationId) {
+                get("/context/delete/" + conversationId).then(() => {
+                    clear()
+                    this.conversationList = this.conversationList.filter(v => v !== conversationId)
+                }).catch(err => {
+                    alert(err)
+                })
+            }
+        },
+        now(date) {
+            const now = date || new Date()
             return (now.getHours() < 10 ? "0" + now.getHours() : now.getHours()) + ":"
                 + (now.getMinutes() < 10 ? "0" + now.getMinutes() : now.getMinutes())
+        },
+        today() {
+            const date = new Date()
+            let m = date.getMonth() + 1
+            return date.getFullYear() + "-" + (m < 10 ? "0" + m : m) + "-"
+                + (date.getDate() < 10 ? "0" + date.getDate() : date.getDate())
+                + " " + this.now(date)
         }
     }
 }).mount('#app')

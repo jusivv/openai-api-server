@@ -27,4 +27,20 @@ function post(action = "", data = {}) {
     // return response.json()
 }
 
-export {post}
+function get(action) {
+    return new Promise((resolve, reject) => {
+        fetch(action, {
+            method: "GET"
+        }).then(response => {
+            if (response.ok) {
+                response.json().then(data => resolve(data))
+            } else {
+                response.json().then(data => reject(data.status + ": " + data.error))
+            }
+        }).catch(err => {
+            reject(err)
+        })
+    })
+}
+
+export { post, get }
