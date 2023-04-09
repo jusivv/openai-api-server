@@ -1,6 +1,9 @@
 spring:
   application:
     name: openai-api-server
+  mvc:
+    async:
+      request-timeout: 600000
 
 openai:
   apiKey: ${OPENAI_API_KEY:}

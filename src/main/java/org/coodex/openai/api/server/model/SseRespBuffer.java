@@ -5,6 +5,7 @@ public class SseRespBuffer {
     private int completionTokens;
     private int totalTokens;
     private StringBuilder sb;
+    private ChatRole role;
 
     public SseRespBuffer() {
         totalTokens = 0;
@@ -30,4 +31,11 @@ public class SseRespBuffer {
         return sb.toString();
     }
 
+    public ChatRole getRole() {
+        return role;
+    }
+
+    public void setRole(ChatRole role) {
+        this.role = role;
+    }
 }

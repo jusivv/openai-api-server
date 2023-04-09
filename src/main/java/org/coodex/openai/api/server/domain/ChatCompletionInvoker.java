@@ -52,9 +52,9 @@ public class ChatCompletionInvoker {
         ObjectMapper objectMapper
     ) {
         OkHttpClient.Builder builder = new OkHttpClient.Builder()
-            .connectTimeout(1, TimeUnit.MINUTES)
-            .readTimeout(5, TimeUnit.MINUTES)
-            .writeTimeout(5, TimeUnit.MINUTES);
+            .connectTimeout(10, TimeUnit.MINUTES)
+            .readTimeout(10, TimeUnit.MINUTES)
+            .writeTimeout(10, TimeUnit.MINUTES);
         if (StringUtils.hasText(proxyType) && StringUtils.hasText(proxyHost)
             && StringUtils.hasText(proxyPort)) {
             Proxy.Type type = null;
@@ -163,9 +163,14 @@ public class ChatCompletionInvoker {
                             try {
                                 ChatCompletionSseResp resp = objectMapper.readValue(data, ChatCompletionSseResp.class);
                                 ChatMessage delta = resp.getChoices()[0].getDelta();
-                                if (delta != null && delta.getContent() != null) {
-                                    buffer.addToken(delta.getContent());
-                                    callback.speak(delta.getContent(), buffer.getCompletionTokens(), buffer.getTotalTokens(), null);
+                                if (delta != null) {
+                                    if (delta.getRole() != null) {
+                                        buffer.setRole(delta.getRole());
+                                    }
+                                    if (delta.getContent() != null) {
+                                        buffer.addToken(delta.getContent());
+                                        callback.speak(delta.getContent(), buffer.getCompletionTokens(), buffer.getTotalTokens(), null);
+                                    }
                                 }
                             } catch (JsonProcessingException e) {
                                 onFailure(
@@ -175,7 +180,8 @@ public class ChatCompletionInvoker {
                             }
 
                         } else {
-                            context.addMessage(role, buffer.getContent());
+                            context.addMessage(buffer.getRole() != null ? buffer.getRole() : ChatRole.ASSISTANT,
+                                    buffer.getContent());
                             context.addTokenUsage(0, buffer.getTotalTokens(), buffer.getTotalTokens());
                             callback.speak(data, buffer.getCompletionTokens(), buffer.getTotalTokens(), null);
                         }
@@ -184,9 +190,11 @@ public class ChatCompletionInvoker {
                     @Override
                     public void onFailure(@NotNull EventSource eventSource, @Nullable Throwable t, @Nullable Response response) {
                         super.onFailure(eventSource, t, response);
-                        log.error(t.getLocalizedMessage(), t);
-                        callback.speak(null, buffer.getCompletionTokens(), buffer.getTotalTokens(), t.getLocalizedMessage());
-                        eventSource.cancel();
+                        if (t != null) {
+                            log.error(t.getLocalizedMessage(), t);
+                            callback.speak(null, buffer.getCompletionTokens(), buffer.getTotalTokens(), t.getLocalizedMessage());
+                            eventSource.cancel();
+                        }
                     }
 
                     @Override

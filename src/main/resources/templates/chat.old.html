@@ -5,97 +5,87 @@
     <link rel="stylesheet" href="/app/chat.css">
     <link rel="stylesheet" href="/highlight/default.min.css">
     <link rel="stylesheet" href="/highlight/idea.min.css">
-    <link rel="stylesheet" href="/antd/antd.min.css">
+<!--    <link rel="stylesheet" href="/antd/antd.min.css">-->
+    <link rel="stylesheet" href="/bootstrap/bootstrap.min.css">
     <script src="/vue/vue.global.js"></script>
     <script src="/highlight/highlight.min.js"></script>
-    <script src="/dayjs/dayjs.min.js"></script>
-    <script src="/dayjs/plugin/customParseFormat.js"></script>
-    <script src="/dayjs/plugin/weekday.js"></script>
-    <script src="/dayjs/plugin/localeData.js"></script>
-    <script src="/dayjs/plugin/weekOfYear.js"></script>
-    <script src="/dayjs/plugin/weekYear.js"></script>
-    <script src="/dayjs/plugin/advancedFormat.js"></script>
-    <script src="/antd/antd.min.js"></script>
+<!--    <script src="/dayjs/dayjs.min.js"></script>-->
+<!--    <script src="/dayjs/plugin/customParseFormat.js"></script>-->
+<!--    <script src="/dayjs/plugin/weekday.js"></script>-->
+<!--    <script src="/dayjs/plugin/localeData.js"></script>-->
+<!--    <script src="/dayjs/plugin/weekOfYear.js"></script>-->
+<!--    <script src="/dayjs/plugin/weekYear.js"></script>-->
+<!--    <script src="/dayjs/plugin/advancedFormat.js"></script>-->
+<!--    <script src="/antd/antd.min.js"></script>-->
+    <script src="/bootstrap/bootstrap.bundle.min.js"></script>
 </head>
 <body>
-    <div id="root">
-        <a-layout style="min-height: 100%">
-            <a-layout-header>
-                <p class="txt-title">ChatGPT</p>
-            </a-layout-header>
-            <a-layout>
-                <a-layout-sider breakpoint="sm" theme="light">
-                    <a-layout style="min-height: 100%">
-                        <a-layout-content style="padding: 5px">
-                            <a-space direction="vertical" :style="{width: '100%'}">
-                                <a-button v-for="(c, i) in conversationList"
-                                          :type="c === conversationId ? 'primary' : ''"
-                                          block
-                                          @click="switchConversation(c)">
-                                    Chat-{{i + 1}}
-                                </a-button>
-                            </a-space>
-                        </a-layout-content>
-                        <a-layout-footer :style="{padding: '10px'}">
-                            <a-space direction="vertical" :style="{width: '100%'}">
-                                <a-button type="primary" block ghost @click="newChat">New chat</a-button>
-                                <a-button type="primary" block ghost danger>Clear all</a-button>
-                                <a-space>
-                                    <a-switch v-model:checked="showMarkdown" checked-children="M" un-checked-children="H"></a-switch>
-                                    <a-switch v-model:checked="useStream" checked-children="S" un-checked-children="N"></a-switch>
-                                </a-space>
-                            </a-space>
-                        </a-layout-footer>
-                    </a-layout>
-                </a-layout-sider>
-                <a-layout>
-                    <a-layout-content :style="{overflow: 'auto', padding: '10px', height: 'calc(100vh - 170px)'}">
-                        <div ref="chat-content" :hidden="showMarkdown">
-                            <div v-for="message in messages">
-                                <div v-if="message.isAnswer" class="speaker">
-                                    <a-avatar style="color: #f56a00; background-color: #fde3cf">
-                                        GPT
-                                    </a-avatar>
-                                    ({{now()}})
-                                </div>
-                                <div v-else  class="speaker">
-                                    <a-avatar style="background-color: #87d068">
-                                        Me
-                                    </a-avatar>
-                                    ({{now()}})
-                                </div>
-<!--                                <div class="speaker">{{message.isAnswer ? 'ChatGPT:' : 'Me:'}}&nbsp;({{now()}})</div>-->
-                                <div v-if="message.isAnswer" style="padding-left: 40px" v-html="parseHtml(message.content)">
-                                </div>
-                                <div v-else  style="padding-left: 40px">{{message.content}}</div>
-                                <br/>
-                            </div>
-                            <div v-if="!useStream && working">
-                                <a-spin />
-                            </div>
+    <div id="app" class="d-flex flex-column h-100">
+        <div class="p-2" style="height: 60px">
+            <h4>ChatGPT</h4>
+        </div>
+        <div class="d-flex flex-row h-100">
+            <div style="width: 15%" class="d-flex flex-column h-100 p-2">
+                <div class="flex-fill overflow-auto">
+                    <div class="list-group">
+                        <button v-for="(c, i) in conversationList" type="button"
+                                :class="c === conversationId ? 'list-group-item list-group-item-action active' : 'list-group-item list-group-item-action'"
+                                @click="switchConversation(c)">
+                            Chat-{{i}}
+                        </button>
+                    </div>
+                </div>
+                <div style="height: 200px;">
+                    <button type="button" class="btn btn-primary w-75 m-2" @click="newChat">New chat</button>
+                    <button type="button" class="btn btn-danger w-75 m-2">Clear all</button>
+                    <div class="form-check w-75 m-2">
+                        <input class="form-check-input" type="checkbox" id="showMd" v-model="showMarkdown">
+                        <label class="form-check-label" style="font-size: 12px" for="showMd">
+                            Markdown
+                        </label>
+                    </div>
+                    <div class="form-check w-75 m-2">
+                        <input class="form-check-input" type="checkbox" id="useStream" v-model="useStream">
+                        <label class="form-check-label" style="font-size: 12px" for="useStream">
+                            Stream
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex flex-column flex-fill">
+                <div ref="chat-content" class="overflow-auto flex-fill p-5" :hidden="showMarkdown">
+                    <div v-for="message in messages" class="p-2">
+                        <div class="speaker">{{message.isAnswer ? 'ChatGPT:' : 'Me:'}}&nbsp;({{now()}})</div>
+                        <div v-if="message.isAnswer" class="alert alert-light" v-html="parseHtml(message.content)">
                         </div>
-                        <div :hidden="!showMarkdown" style="height: 100%">
-                            <textarea style="height: 100%; width: 100%">{{mdContent}}</textarea>
-                        </div>
-                    </a-layout-content>
-                    <a-layout-footer :style="{padding: '10px'}">
-                        <a-input-group compact>
-                            <a-textarea v-model:value="question" placeholder="Let's talk about ..." style="width: calc(100% - 140px); height: 60px" :disabled="working"></a-textarea>
-                            <a-button type="primary" style="height: 60px" :disabled="!canSend" @click="send">Send</a-button>
-                            <a-button type="primary" ghost style="height: 60px" :disabled="working" @click="deleteConversation">Delete</a-button>
-                        </a-input-group>
-                    </a-layout-footer>
-                </a-layout>
-            </a-layout>
-        </a-layout>
+                        <div v-else class="alert alert-info">{{message.content}}</div>
+                    </div>
+                    <div v-if="!useStream && working" class="spinner-border text-secondary p-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <div class="overflow-auto flex-fill" :hidden="!showMarkdown">
+                    <textarea style="height: 100%; width: 100%">{{mdContent}}</textarea>
+                </div>
+<!--                <div class="p-3" style="height: 20px;">-->
+<!--                    <p class="label-token">tokens: {{totalTokens}} / [[${@app.maxTokens}]]</p>-->
+<!--                </div>-->
+                <div class="input-group p-2" style="height: 80px">
+                    <textarea v-model="question" class="form-control" placeholder="Let's talk" aria-describedby="btn-send" rows="1" :disabled="working"></textarea>
+                    <div id="btn-send" class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" :disabled="!canSend" @click="send">Send</button>
+                        <button type="button" class="btn btn-outline-primary" :disabled="working" @click="deleteConversation">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     <script type="module">
 const { createApp, nextTick } = Vue
 import { post, get } from "/app/request.js"
-import { marked } from "/md/marked.esm.js"
-// const { Layout, LayoutHeader, LayoutSider, LayoutContent, LayoutFooter, Switch} = antd
+import { marked } from "/md/marked.esm.js";
 const prompt = "你好！我的AI助手"
-const app = createApp({
+createApp({
     data() {
         return {
             question: "",
@@ -305,9 +295,7 @@ const app = createApp({
                 + " " + this.now(date)
         }
     }
-})
-app.use(antd)
-app.mount('#root')
+}).mount('#app')
     </script>
 </body>
 </html>
