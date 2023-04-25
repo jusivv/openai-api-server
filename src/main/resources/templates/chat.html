@@ -49,7 +49,7 @@
                     </a-layout>
                 </a-layout-sider>
                 <a-layout>
-                    <a-layout-content :style="{overflow: 'auto', padding: '10px', height: 'calc(100vh - 170px)'}">
+                    <a-layout-content ref="chat-layout" :style="{overflow: 'auto', padding: '10px', height: 'calc(100vh - 170px)'}">
                         <div ref="chat-content" :hidden="showMarkdown">
                             <div v-for="message in messages">
                                 <div v-if="message.isAnswer" class="speaker">
@@ -82,7 +82,15 @@
                         <a-input-group compact>
                             <a-textarea v-model:value="question" placeholder="Let's talk about ..." style="width: calc(100% - 140px); height: 60px" :disabled="working"></a-textarea>
                             <a-button type="primary" style="height: 60px" :disabled="!canSend" @click="send">Send</a-button>
-                            <a-button type="primary" ghost style="height: 60px" :disabled="working" @click="deleteConversation">Delete</a-button>
+                            <a-popconfirm
+                                    title="Delete this conversation ?"
+                                    ok-text="Yes"
+                                    cancel-text="No"
+                                    @confirm="deleteConversation"
+                                    :disabled="conversationId === ''"
+                            >
+                                <a-button type="primary" ghost style="height: 60px" :disabled="working">Delete</a-button>
+                            </a-popconfirm>
                         </a-input-group>
                     </a-layout-footer>
                 </a-layout>
@@ -115,8 +123,8 @@ const app = createApp({
             return question.trim().length > 0 && !working && conversationId
         },
         mdContent() {
-            const {messages, today} = this
-            let md = "# Chat at " + today()
+            const { messages } = this
+            let md = "# ChatGPT"
             if (messages) {
                 messages.forEach(m => {
                     md += "\n\n" + (!m.isAnswer ? "## " : "") + m.content
@@ -152,26 +160,26 @@ const app = createApp({
         },
         flushContent() {
             hljs.highlightAll()
-            let div = this.$refs["chat-content"]
-            if (div.offsetHeight < div.scrollHeight) {
-                div.scrollTo({ top: this.lastContentHeight, behavior: 'smooth' });
+            let layout = this.$refs["chat-layout"]
+            let content = this.$refs["chat-content"]
+            if (layout.offsetHeight < content.scrollHeight) {
+                layout.scrollTo({ top: this.lastContentHeight, behavior: 'smooth' });
             }
         },
         parseHtml(src) {
             return marked.parse(src)
         },
         newChat() {
-            const { ask, clear, askWithSse, useStream } = this
+            const { clear } = this
             clear()
-            get("/context/create").then(data => {
+            const { message } = antd
+            post("/context/create", {
+                question: prompt
+            }).then(data => {
                 if (data.conversationId) {
                     this.conversationId = data.conversationId
                     this.conversationList.push(this.conversationId)
-                    if (useStream) {
-                        askWithSse(prompt, this.conversationId)
-                    } else {
-                        ask(prompt, this.conversationId)
-                    }
+                    message.success("OK! Let's start talking")
                 }
             }).catch(err => alert(err))
         },
@@ -271,10 +279,12 @@ const app = createApp({
                 clear()
                 this.conversationId = id
                 data.messages.map(m => {
-                    this.messages.push({
-                        isAnswer: m.role === "assistant",
-                        content: m.content
-                    })
+                    if (m.role !== "system") {
+                        this.messages.push({
+                            isAnswer: m.role === "assistant",
+                            content: m.content
+                        })
+                    }
                 })
                 this.totalTokens = data.totalTokens
             }).catch(err => {
@@ -283,6 +293,7 @@ const app = createApp({
         },
         deleteConversation() {
             const { conversationId, clear } = this
+            const { message } = antd
             if (conversationId) {
                 get("/context/delete/" + conversationId).then(() => {
                     clear()

@@ -1,15 +1,11 @@
 package org.coodex.openai.api.server.controller;
 
 import org.coodex.openai.api.server.domain.ConversationManager;
-import org.coodex.openai.api.server.model.ChatContext;
-import org.coodex.openai.api.server.model.ContextListResp;
-import org.coodex.openai.api.server.model.ContextResp;
+import org.coodex.openai.api.server.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.Assert;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/context")
@@ -28,10 +24,13 @@ public class ChatContextSvc {
         return resp;
     }
 
-    @GetMapping("/create")
-    public ContextResp createChatContext() {
+    @PostMapping("/create")
+    public ContextResp createChatContext(@RequestBody PromptReq req) {
         ContextResp resp = new ContextResp();
         ChatContext context = new ChatContext();
+        if (StringUtils.hasText(req.getQuestion())) {
+            context.addMessage(ChatRole.SYSTEM, req.getQuestion());
+        }
         resp.setConversationId(conversationManager.addConversation(context));
         return resp;
     }

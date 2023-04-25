@@ -141,7 +141,7 @@ public class ChatCompletionInvoker {
     }
 
     public String ask(String question, ChatContext context) throws IOException {
-        request(!context.isEmpty() ? ChatRole.USER : ChatRole.SYSTEM, question, context);
+        request(ChatRole.USER, question, context);
         return context.getLastAnswer();
     }
 
@@ -208,6 +208,6 @@ public class ChatCompletionInvoker {
 
     public void askWithSse(String question, ChatContext context, IChatCompletionSseCallback callback)
             throws JsonProcessingException {
-        requestWithSse(!context.isEmpty() ? ChatRole.USER : ChatRole.SYSTEM, question, context, callback);
+        requestWithSse(ChatRole.USER, question, context, callback);
     }
 }
