@@ -1,13 +1,16 @@
 package org.coodex.openai.api.server.controller;
 
+import jakarta.annotation.security.RolesAllowed;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import org.coodex.openai.api.server.component.ConversationLoader;
+import org.coodex.openai.api.server.data.repo.ChatContextRepo;
+import org.coodex.openai.api.server.data.repo.ChatMessageRepo;
 import org.coodex.openai.api.server.domain.ChatCompletionInvoker;
-import org.coodex.openai.api.server.domain.ConversationManager;
-import org.coodex.openai.api.server.model.ChatContext;
-import org.coodex.openai.api.server.model.ChatReq;
-import org.coodex.openai.api.server.model.ChatResp;
-import org.coodex.openai.api.server.model.ChatSseResp;
+import org.coodex.openai.api.server.model.*;
+import org.coodex.openai.api.server.util.CachedContextManager;
+import org.coodex.openai.api.server.util.Const;
 import org.coodex.openai.api.server.util.Counter;
 import org.coodex.openai.api.server.util.IChatCompletionSseCallback;
 import org.slf4j.Logger;
@@ -30,25 +33,30 @@ public class ChatCompletionSvc {
     @Value("${openai.maxTokens}")
     private int maxTokens;
     private ChatCompletionInvoker invoker;
-    private ConversationManager conversationManager;
-
+    private ConversationLoader conversationLoader;
+    private ChatContextRepo contextRepo;
+    private ChatMessageRepo messageRepo;
     private ExecutorService sseExecutor = Executors.newFixedThreadPool(4);
-
     @Autowired
-    public ChatCompletionSvc(ChatCompletionInvoker invoker, ConversationManager conversationManager) {
+    public ChatCompletionSvc(ChatCompletionInvoker invoker, ConversationLoader conversationLoader,
+                             ChatContextRepo contextRepo, ChatMessageRepo messageRepo) {
         this.invoker = invoker;
-        this.conversationManager = conversationManager;
+        this.conversationLoader = conversationLoader;
+        this.contextRepo = contextRepo;
+        this.messageRepo = messageRepo;
     }
 
     @PostMapping("/ask")
-    public ChatResp ask(@RequestBody @Valid ChatReq req) {
-        ChatContext context = conversationManager.getContext(req.getConversationId());
+    @RolesAllowed({ Const.ROLE_USER, Const.ROLE_ADMIN })
+    public ChatResp ask(HttpSession session, @RequestBody @Valid ChatReq req) {
+        ConversationCache cache = conversationLoader.get(session);
+        ChatContext context = cache.get(req.getConversationId());
         Assert.notNull(context, "context not found");
         Assert.isTrue(context.getTotalTokens() < maxTokens, "tokens overflow");
         ChatResp resp = new ChatResp();
         resp.setConversationId(req.getConversationId());
         try {
-            invoker.ask(req.getQuestion(), context);
+            invoker.ask(req.getQuestion(), new CachedContextManager(context, messageRepo));
             resp.setAnswer(context.getLastAnswer());
             resp.setCompletionTokens(context.getCompletionTokens());
             resp.setTotalTokens(context.getTotalTokens());
@@ -86,15 +94,18 @@ public class ChatCompletionSvc {
     }
 
     @GetMapping("/sseAsk/{conversationId}/{content}")
-    public SseEmitter adkWithSse(@PathVariable("conversationId") @NotBlank String conversationId,
+    @RolesAllowed({ Const.ROLE_USER, Const.ROLE_ADMIN })
+    public SseEmitter adkWithSse(HttpSession session,
+                                 @PathVariable("conversationId") @NotBlank String conversationId,
                                  @PathVariable("content") @NotBlank String content) {
-        ChatContext context = conversationManager.getContext(conversationId);
+        ConversationCache cache = conversationLoader.get(session);
+        ChatContext context = cache.get(conversationId);
         Assert.notNull(context, "context not found");
         Assert.isTrue(context.getTotalTokens() < maxTokens, "tokens overflow");
         SseEmitter emitter = new SseEmitter();
         sseExecutor.execute(() -> {
             try {
-                invoker.askWithSse(content, context,
+                invoker.askWithSse(content, new CachedContextManager(context, messageRepo),
                         buildSseCallback(conversationId, emitter));
             } catch (IOException e) {
                 log.error(e.getLocalizedMessage(), e);

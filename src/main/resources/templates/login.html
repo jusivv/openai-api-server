@@ -1,0 +1,102 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Login</title>
+    <link rel="stylesheet" href="/antd/antd.min.css">
+    <script src="/vue/vue.global.js"></script>
+    <script src="/highlight/highlight.min.js"></script>
+    <script src="/dayjs/dayjs.min.js"></script>
+    <script src="/dayjs/plugin/customParseFormat.js"></script>
+    <script src="/dayjs/plugin/weekday.js"></script>
+    <script src="/dayjs/plugin/localeData.js"></script>
+    <script src="/dayjs/plugin/weekOfYear.js"></script>
+    <script src="/dayjs/plugin/weekYear.js"></script>
+    <script src="/dayjs/plugin/advancedFormat.js"></script>
+    <script src="/antd/antd.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <h1>Please login</h1>
+        <a-form :model="formState" class="login-form">
+            <a-form-item
+                    label="Username"
+                    name="username"
+                    :rules="[{ required: true, message: 'Please input your username!' }]"
+            >
+                <a-input v-model:value="formState.username">
+                    <template #prefix>
+                        <UserOutlined class="site-form-item-icon" />
+                    </template>
+                </a-input>
+            </a-form-item>
+            <a-form-item
+                    label="Password"
+                    name="password"
+                    :rules="[{ required: true, message: 'Please input your password!' }]"
+            >
+                <a-input-password v-model:value="formState.password">
+                    <template #prefix>
+                        <LockOutlined class="site-form-item-icon" />
+                    </template>
+                </a-input-password>
+            </a-form-item>
+            <a-form-item>
+                <a-form-item name="remember" no-style>
+                    <a-checkbox v-model:checked="formState.autoLogin">Remember me in [[${@appConfig.tokenExpireDays}]] days</a-checkbox>
+                </a-form-item>
+            </a-form-item>
+            <a-form-item>
+                <a-button :disabled="disabled" type="primary" class="login-form-button" @click="login">
+                    Login
+                </a-button>
+            </a-form-item>
+        </a-form>
+    </div>
+    <script type="module">
+
+const { createApp } = Vue
+import { post, get } from "/app/request.js"
+const app = createApp({
+    data() {
+        return {
+            formState: {
+                username: "",
+                password: "",
+                autoLogin: true
+            }
+        }
+    },
+    computed: {
+        disabled() {
+            const { formState } = this
+            return !formState.username || !formState.password
+        }
+    },
+    methods: {
+        login() {
+            const { username, password, autoLogin } = this.formState
+
+            if (username && password) {
+                post("/account/login", {
+                    name: username,
+                    pass: password,
+                    autoLogin
+                }).then(data => {
+                    sessionStorage.setItem("sessionId", data.sessionId)
+                    if (data.token) {
+                        localStorage.setItem("token", data.token)
+                    }
+                    // redirect
+                    window.location.setRequestHeader()
+                }).catch(err=> {
+                    alert(err)
+                })
+            }
+        }
+    }
+})
+app.use(antd)
+app.mount('#app')
+    </script>
+</body>
+</html>

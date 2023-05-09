@@ -3,14 +3,16 @@ function post(action = "", data = {}) {
       fetch(action, {
           method: "POST",
           headers: {
-              "Content-Type": "application/json"
+              "Content-Type": "application/json",
+              "X-SESSION-ID": sessionStorage.sessionId || "",
+              "X-TOKEN-ID": localStorage.token || ""
           },
           body: JSON.stringify(data)
       }).then(response => {
           if (response.ok) {
               response.json().then(data => resolve(data))
           } else {
-              response.json().then(data => reject(data.status + ": " + data.error))
+              response.json().then(data => reject(data.code + ": " + data.message))
           }
       }).catch(err => {
           reject(err)
@@ -30,12 +32,16 @@ function post(action = "", data = {}) {
 function get(action) {
     return new Promise((resolve, reject) => {
         fetch(action, {
-            method: "GET"
+            method: "GET",
+            headers: {
+                "X-SESSION-ID": sessionStorage.sessionId || "",
+                "X-TOKEN-ID": localStorage.token || ""
+            }
         }).then(response => {
             if (response.ok) {
                 response.json().then(data => resolve(data))
             } else {
-                response.json().then(data => reject(data.status + ": " + data.error))
+                response.json().then(data => reject(data.code + ": " + data.message))
             }
         }).catch(err => {
             reject(err)

@@ -4,16 +4,34 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ChatContext {
+    private String contextId;
+    private String contextTitle;
     private List<ChatMessage> messageList;
-    private List<TokenUsage> tokenUsageList;
+    private int promptTokens;
     private int completionTokens;
     private int totalTokens;
 
     public ChatContext() {
         messageList = new ArrayList<>();
-        tokenUsageList = new ArrayList<>();
+        promptTokens = 0;
         completionTokens = 0;
         totalTokens = 0;
+    }
+
+    public String getContextId() {
+        return contextId;
+    }
+
+    public void setContextId(String contextId) {
+        this.contextId = contextId;
+    }
+
+    public String getContextTitle() {
+        return contextTitle;
+    }
+
+    public void setContextTitle(String contextTitle) {
+        this.contextTitle = contextTitle;
     }
 
     public void addMessage(ChatRole role, String content) {
@@ -24,12 +42,13 @@ public class ChatContext {
     }
 
     public void addTokenUsage(int promptTokens, int completionTokens, int totalTokens) {
-        TokenUsage tokenUsage = new TokenUsage();
-        tokenUsage.setPromptTokens(promptTokens);
-        tokenUsage.setCompletionTokens(completionTokens);
+        this.promptTokens += promptTokens;
         this.completionTokens += completionTokens;
-        tokenUsage.setTotalTokens(totalTokens);
         this.totalTokens += totalTokens;
+    }
+
+    public int getPromptTokens() {
+        return promptTokens;
     }
 
     public int getCompletionTokens() {

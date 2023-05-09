@@ -4,6 +4,18 @@ spring:
   mvc:
     async:
       request-timeout: 600000
+  session:
+    store-type: none
+    timeout: 10800000
+  datasource:
+    url: "jdbc:sqlite:${SQLITE_FILE}"
+    driver-class-name: org.sqlite.JDBC
+  jpa:
+    hibernate:
+      ddl-auto: update
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
 
 openai:
   apiKey: ${OPENAI_API_KEY:}
@@ -23,4 +35,10 @@ openai:
     pass: ${OPENAI_PROXY_PASS:}
 app:
   serverUrl: ${SERVER_URL:http://localhost:8080}
+  admin:
+    user: "${ADMIN_USER:admin}"
+    pass: "${ADMIN_PASS:}"
+  token:
+    expire-days: ${TOKEN_EXPIRE_DAYS:10}
+    key: "${TOKEN_AES_KEY:WDa5x1+/y3NagFX22jcUsQ==}"
 

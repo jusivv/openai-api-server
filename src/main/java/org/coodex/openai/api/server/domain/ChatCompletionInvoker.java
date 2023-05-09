@@ -8,6 +8,7 @@ import okhttp3.sse.EventSource;
 import okhttp3.sse.EventSourceListener;
 import org.coodex.openai.api.server.model.*;
 import org.coodex.openai.api.server.util.IChatCompletionSseCallback;
+import org.coodex.openai.api.server.util.IContextManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -100,15 +101,11 @@ public class ChatCompletionInvoker {
         this.objectMapper = objectMapper;
     }
 
-    private Request buildChatCompletionRequest(
-            ChatRole role, String content, ChatContext context, boolean withStream)
-            throws JsonProcessingException {
-        context.addMessage(role, content);
+    private Request buildChatCompletionRequest(IContextManager contextManager, String model, double temperature,
+                                               int maxTokens, boolean withStream) throws JsonProcessingException {
         ChatCompletionReq req = new ChatCompletionReq();
+        contextManager.iterateChatMessage(message -> req.addMessage(message.getRole(), message.getContent()));
         req.setModel(model);
-        for (ChatMessage message : context.getMessages()) {
-            req.addMessage(message.getRole(), message.getContent());
-        }
         req.setTemperature(temperature);
         req.setMaxTokens(maxTokens);
         req.setStream(withStream);
@@ -119,20 +116,22 @@ public class ChatCompletionInvoker {
                 .post(body).build();
     }
 
-    private void request(ChatRole role, String content, ChatContext context) throws IOException {
-        Response response = httpClient.newCall(buildChatCompletionRequest(role, content, context, false))
-                .execute();
+    private void request(IContextManager contextManager, String model, double temperature, int maxTokens)
+            throws IOException {
+        Response response = httpClient.newCall(buildChatCompletionRequest(contextManager, model, temperature,
+                        maxTokens,false)).execute();
         if (response.isSuccessful()) {
             ChatCompletionResp resp = objectMapper.readValue(response.body().string(), ChatCompletionResp.class);
             if (resp != null){
                 if(resp.getChoices().length > 0) {
                     ChatMessage message = resp.getChoices()[0].getMessage();
-                    context.addMessage(message.getRole(), message.getContent());
-                }
-                if (resp.getUsage() != null) {
-                    TokenUsage usage = resp.getUsage();
-                    context.addTokenUsage(usage.getPromptTokens(), usage.getCompletionTokens(),
-                        usage.getTotalTokens());
+                    if (resp.getUsage() != null) {
+                        TokenUsage usage = resp.getUsage();
+                        contextManager.completion(message.getRole(), message.getContent(), usage.getPromptTokens(),
+                                usage.getCompletionTokens(), usage.getTotalTokens());
+                    } else {
+                        contextManager.completion(message.getRole(), message.getContent());
+                    }
                 }
             }
         } else {
@@ -140,17 +139,16 @@ public class ChatCompletionInvoker {
         }
     }
 
-    public String ask(String question, ChatContext context) throws IOException {
-        request(ChatRole.USER, question, context);
-        return context.getLastAnswer();
+    public void ask(String question, IContextManager contextManager) throws IOException {
+        contextManager.completion(ChatRole.USER, question);
+        request(contextManager, model, temperature, maxTokens);
     }
 
-    private void requestWithSse(ChatRole role, String content, ChatContext context,
-                                IChatCompletionSseCallback callback)
-            throws JsonProcessingException {
+    private void requestWithSse(IContextManager contextManager, String model, double temperature, int maxTokens,
+                                IChatCompletionSseCallback callback) throws JsonProcessingException {
         final SseRespBuffer buffer = new SseRespBuffer();
         RealEventSource eventSource = new RealEventSource(
-                buildChatCompletionRequest(role, content, context, true),
+                buildChatCompletionRequest(contextManager, model, temperature, maxTokens, true),
                 new EventSourceListener() {
                     @Override
                     public void onClosed(@NotNull EventSource eventSource) {
@@ -180,9 +178,9 @@ public class ChatCompletionInvoker {
                             }
 
                         } else {
-                            context.addMessage(buffer.getRole() != null ? buffer.getRole() : ChatRole.ASSISTANT,
-                                    buffer.getContent());
-                            context.addTokenUsage(0, buffer.getTotalTokens(), buffer.getTotalTokens());
+                            contextManager.completion(buffer.getRole() != null ? buffer.getRole() : ChatRole.ASSISTANT,
+                                    buffer.getContent(), 0, buffer.getCompletionTokens(),
+                                    buffer.getCompletionTokens());
                             callback.speak(data, buffer.getCompletionTokens(), buffer.getTotalTokens(), null);
                         }
                     }
@@ -206,8 +204,9 @@ public class ChatCompletionInvoker {
         eventSource.connect(httpClient);
     }
 
-    public void askWithSse(String question, ChatContext context, IChatCompletionSseCallback callback)
+    public void askWithSse(String question, IContextManager contextManager, IChatCompletionSseCallback callback)
             throws JsonProcessingException {
-        requestWithSse(ChatRole.USER, question, context, callback);
+        contextManager.completion(ChatRole.USER, question);
+        requestWithSse(contextManager, model, temperature, maxTokens, callback);
     }
 }

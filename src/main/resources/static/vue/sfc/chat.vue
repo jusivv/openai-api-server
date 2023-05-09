@@ -1,23 +1,4 @@
-<!DOCTYPE HTML>
-<html>
-<head>
-    <title>ChatGPT</title>
-    <link rel="stylesheet" href="/app/chat.css">
-    <link rel="stylesheet" href="/highlight/default.min.css">
-    <link rel="stylesheet" href="/highlight/idea.min.css">
-    <link rel="stylesheet" href="/antd/antd.min.css">
-    <script src="/vue/vue.global.js"></script>
-    <script src="/highlight/highlight.min.js"></script>
-    <script src="/dayjs/dayjs.min.js"></script>
-    <script src="/dayjs/plugin/customParseFormat.js"></script>
-    <script src="/dayjs/plugin/weekday.js"></script>
-    <script src="/dayjs/plugin/localeData.js"></script>
-    <script src="/dayjs/plugin/weekOfYear.js"></script>
-    <script src="/dayjs/plugin/weekYear.js"></script>
-    <script src="/dayjs/plugin/advancedFormat.js"></script>
-    <script src="/antd/antd.min.js"></script>
-</head>
-<body>
+<template>
     <div id="root">
         <a-layout style="min-height: 100%">
             <a-layout-header>
@@ -97,13 +78,14 @@
             </a-layout>
         </a-layout>
     </div>
-    <script type="module">
+</template>
+<script type="module">
 const { createApp } = Vue
 import { post, get } from "/app/request.js"
 import { marked } from "/md/marked.esm.js"
-// const { Layout, LayoutHeader, LayoutSider, LayoutContent, LayoutFooter, Switch} = antd
 const prompt = "你好！我的AI助手"
-const app = createApp({
+export default {
+    name: "Chat",
     data() {
         return {
             question: "",
@@ -137,6 +119,9 @@ const app = createApp({
         // this.flushContent()
     },
     mounted() {
+        if (!sessionStorage.sessionId && !localStorage.token) {
+            this.$router.push("/login")
+        }
         new MutationObserver(() => {
             this.flushContent()
         }).observe(this.$refs["chat-content"], {
@@ -316,9 +301,5 @@ const app = createApp({
                 + " " + this.now(date)
         }
     }
-})
-app.use(antd)
-app.mount('#root')
-    </script>
-</body>
-</html>
+}
+</script>

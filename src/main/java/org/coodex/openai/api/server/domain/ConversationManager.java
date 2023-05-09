@@ -9,18 +9,17 @@ import java.util.Hashtable;
 import java.util.Map;
 
 @Component
+@Deprecated
 public class ConversationManager {
-    private IDGenerator idGenerator;
     private Map<String, ChatContext> conversations;
 
     @Autowired
-    public ConversationManager(IDGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+    public ConversationManager() {
         conversations = new Hashtable<>();
     }
 
     public String addConversation(ChatContext context) {
-        String id = idGenerator.genId();
+        String id = IDGenerator.genId();
         conversations.put(id, context);
         return id;
     }

@@ -6,13 +6,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class IDGenerator {
 
-    private ULID ulid;
+    private static ULID ulid = new ULID();
 
-    public IDGenerator() {
-        ulid = new ULID();
-    }
-
-    public String genId() {
+    public static String genId() {
         return ulid.nextULID();
     }
 }

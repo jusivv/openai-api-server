@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Chat</title>
+    <link rel="stylesheet" href="/app/chat.css">
+    <link rel="stylesheet" href="/highlight/default.min.css">
+    <link rel="stylesheet" href="/highlight/idea.min.css">
+    <link rel="stylesheet" href="/antd/antd.min.css">
+    <script src="/vue/vue.global.js"></script>
+    <script src="/vue/vue-router.global.js"></script>
+    <script src="/vue/vue3-sfc-loader.js"></script>
+    <script src="/highlight/highlight.min.js"></script>
+    <script src="/dayjs/dayjs.min.js"></script>
+    <script src="/dayjs/plugin/customParseFormat.js"></script>
+    <script src="/dayjs/plugin/weekday.js"></script>
+    <script src="/dayjs/plugin/localeData.js"></script>
+    <script src="/dayjs/plugin/weekOfYear.js"></script>
+    <script src="/dayjs/plugin/weekYear.js"></script>
+    <script src="/dayjs/plugin/advancedFormat.js"></script>
+    <script src="/antd/antd.min.js"></script>
+</head>
+<body>
+<div id="app">
+<router-view></router-view>
+</div>
+<script type="module">
+const { createApp } = Vue
+const { loadModule } = window["vue3-sfc-loader"]
+const options = {
+    moduleCache: {
+        vue: Vue
+    },
+    async getFile(url) {
+        const res = await fetch(url);
+        if ( !res.ok ) {
+            throw Object.assign(new Error(res.statusText + ' ' + url), { res });
+        }
+        if (url.endsWith(".js")) {
+            return {
+                getContentData: asBinary => asBinary ? res.arrayBuffer() : res.text(),
+                type: ".mjs"
+            }
+        } else {
+            return {
+                getContentData: asBinary => asBinary ? res.arrayBuffer() : res.text(),
+            }
+        }
+    },
+    addStyle(textContent) {
+        const style = Object.assign(document.createElement('style'), { textContent });
+        const ref = document.head.getElementsByTagName('style')[0] || null;
+        document.head.insertBefore(style, ref);
+    },
+}
+const app = createApp({
+
+    mounted() {
+        this.$router.push("/login")
+    }
+})
+const routes = [
+    { path: "/login", component: Vue.defineAsyncComponent(() => loadModule("/vue/sfc/login.vue", options)) },
+    { path: "/chat", component: Vue.defineAsyncComponent(() => loadModule("/vue/sfc/chat.vue", options))}
+]
+const router = VueRouter.createRouter({
+    history: VueRouter.createWebHashHistory(),
+    routes
+})
+app.use(antd)
+app.use(router)
+app.mount('#app')
+</script>
+</body>
+</html>
