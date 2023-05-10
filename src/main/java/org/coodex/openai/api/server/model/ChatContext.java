@@ -6,10 +6,11 @@ import java.util.List;
 public class ChatContext {
     private String contextId;
     private String contextTitle;
-    private List<ChatMessage> messageList;
+    private List<ChatMessageResp> messageList;
     private int promptTokens;
     private int completionTokens;
     private int totalTokens;
+    private long createTime;
 
     public ChatContext() {
         messageList = new ArrayList<>();
@@ -34,10 +35,11 @@ public class ChatContext {
         this.contextTitle = contextTitle;
     }
 
-    public void addMessage(ChatRole role, String content) {
-        ChatMessage chatMessage = new ChatMessage();
+    public void addMessage(ChatRole role, String content, long createTime) {
+        ChatMessageResp chatMessage = new ChatMessageResp();
         chatMessage.setRole(role);
         chatMessage.setContent(content);
+        chatMessage.setCreateTime(createTime);
         messageList.add(chatMessage);
     }
 
@@ -60,12 +62,12 @@ public class ChatContext {
     }
 
     public ChatMessage[] getMessages() {
-        return messageList.toArray(new ChatMessage[0]);
+        return messageList.toArray(new ChatMessageResp[0]);
     }
 
     public String getLastAnswer() {
         if (!messageList.isEmpty()) {
-            ChatMessage message = messageList.get(messageList.size() - 1);
+            ChatMessageResp message = messageList.get(messageList.size() - 1);
             if (message.getRole() == ChatRole.ASSISTANT) {
                 return message.getContent();
             }
@@ -75,5 +77,13 @@ public class ChatContext {
 
     public boolean isEmpty() {
         return messageList.isEmpty();
+    }
+
+    public long getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(long createTime) {
+        this.createTime = createTime;
     }
 }

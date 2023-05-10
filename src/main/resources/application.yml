@@ -22,6 +22,11 @@ openai:
   model: ${OPENAI_MODEL:gpt-3.5-turbo}
   temperature: ${OPENAI_TEMPERATURE:1}
   maxTokens: ${OPENAI_MAX_TOKENS:2048}
+  reduceToken: ${OPENAI_REDUCE_TOKEN:true}
+  timeout:
+    connect: ${OPENAI_TIMEOUT_CONNECT:180}
+    read: ${OPENAI_TIMEOUT_READ:180}
+    write: ${OPENAI_TIMEOUT_WRITE:180}
   apiServer:
     schema: ${OPENAI_SERVER_SCHEMA:https}
     host: ${OPENAI_SERVER_HOST:api.openai.com}
@@ -33,6 +38,8 @@ openai:
     port: ${OPENAI_PROXY_PORT:}
     user: ${OPENAI_PROXY_USER:}
     pass: ${OPENAI_PROXY_PASS:}
+  chatTitle:
+    prompt: "${OPENAI_CHAT_TITLE_PROMPT:请用十个以内的汉字描述一下我们谈话的主题，回答中不要带有任何标点符号！}"
 app:
   serverUrl: ${SERVER_URL:http://localhost:8080}
   admin:

@@ -37,6 +37,8 @@ public class ChatCompletionInvoker {
     private double temperature;
     @Value("${openai.maxTokens}")
     private int maxTokens;
+    @Value("${openai.reduceToken:true}")
+    private boolean reduceToken;
     private ObjectMapper objectMapper;
 
     @Autowired
@@ -50,12 +52,15 @@ public class ChatCompletionInvoker {
         @Value("${openai.proxy.port}") String proxyPort,
         @Value("${openai.proxy.user}") String proxyUser,
         @Value("${openai.proxy.pass}") String proxyPass,
+        @Value("${openai.timeout.connect}") int connectTimeout,
+        @Value("${openai.timeout.read}") int readTimeout,
+        @Value("${openai.timeout.write}") int writeTimeout,
         ObjectMapper objectMapper
     ) {
         OkHttpClient.Builder builder = new OkHttpClient.Builder()
-            .connectTimeout(10, TimeUnit.MINUTES)
-            .readTimeout(10, TimeUnit.MINUTES)
-            .writeTimeout(10, TimeUnit.MINUTES);
+            .connectTimeout(connectTimeout, TimeUnit.SECONDS)
+            .readTimeout(readTimeout, TimeUnit.SECONDS)
+            .writeTimeout(writeTimeout, TimeUnit.SECONDS);
         if (StringUtils.hasText(proxyType) && StringUtils.hasText(proxyHost)
             && StringUtils.hasText(proxyPort)) {
             Proxy.Type type = null;
@@ -104,7 +109,15 @@ public class ChatCompletionInvoker {
     private Request buildChatCompletionRequest(IContextManager contextManager, String model, double temperature,
                                                int maxTokens, boolean withStream) throws JsonProcessingException {
         ChatCompletionReq req = new ChatCompletionReq();
-        contextManager.iterateChatMessage(message -> req.addMessage(message.getRole(), message.getContent()));
+        contextManager.iterateChatMessage(message -> {
+            if (reduceToken) {
+                if (message.getRole() != ChatRole.ASSISTANT) {
+                    req.addMessage(message.getRole(), message.getContent());
+                }
+            } else {
+                req.addMessage(message.getRole(), message.getContent());
+            }
+        });
         req.setModel(model);
         req.setTemperature(temperature);
         req.setMaxTokens(maxTokens);

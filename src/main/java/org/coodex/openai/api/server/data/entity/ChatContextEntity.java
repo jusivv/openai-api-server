@@ -13,7 +13,7 @@ public class ChatContextEntity {
     private String contextId = IDGenerator.genId();
     @Column(length = 32, nullable = false)
     private String accountId;
-    @Column(length = 500, nullable = false)
+    @Column(length = 500)
     private String contextTitle;
     private long createTime = System.currentTimeMillis();
 

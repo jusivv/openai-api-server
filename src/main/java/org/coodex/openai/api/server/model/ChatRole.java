@@ -9,12 +9,21 @@ public enum ChatRole {
     @JsonValue
     private final String role;
 
-    private ChatRole(String role) {
+    ChatRole(String role) {
         this.role = role;
     }
 
     @Override
     public String toString() {
         return role;
+    }
+
+    public static ChatRole of(String value) {
+        for (ChatRole chatRole : values()) {
+            if (chatRole.toString().equalsIgnoreCase(value)) {
+                return chatRole;
+            }
+        }
+        return USER;
     }
 }

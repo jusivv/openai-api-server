@@ -36,7 +36,7 @@ public class CachedContextManager implements IContextManager {
         messageEntity.setCompletionTokens(completionTokens);
         messageEntity.setTotalTokens(totalTokens);
         messageRepo.save(messageEntity);
-        context.addMessage(role, message);
+        context.addMessage(role, message, messageEntity.getCreateTime());
         context.addTokenUsage(promptTokens, completionTokens, totalTokens);
     }
 }

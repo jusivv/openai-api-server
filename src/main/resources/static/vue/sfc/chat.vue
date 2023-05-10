@@ -10,10 +10,10 @@
                         <a-layout-content style="padding: 5px">
                             <a-space direction="vertical" :style="{width: '100%'}">
                                 <a-button v-for="(c, i) in conversationList"
-                                          :type="c === conversationId ? 'primary' : ''"
+                                          :type="c.contextId === conversationId ? 'primary' : ''"
                                           block
-                                          @click="switchConversation(c)">
-                                    Chat-{{i + 1}}
+                                          @click="switchConversation(c.contextId)">
+                                    {{c.contextTitle || "New conversation"}}
                                 </a-button>
                             </a-space>
                         </a-layout-content>
@@ -37,13 +37,13 @@
                                     <a-avatar style="color: #f56a00; background-color: #fde3cf">
                                         GPT
                                     </a-avatar>
-                                    ({{now()}})
+                                    ({{ message.time || now() }})
                                 </div>
                                 <div v-else  class="speaker">
                                     <a-avatar style="background-color: #87d068">
                                         Me
                                     </a-avatar>
-                                    ({{now()}})
+                                    ({{ message.time || now() }})
                                 </div>
 <!--                                <div class="speaker">{{message.isAnswer ? 'ChatGPT:' : 'Me:'}}&nbsp;({{now()}})</div>-->
                                 <div v-if="message.isAnswer" style="padding-left: 40px" v-html="parseHtml(message.content)">
@@ -132,7 +132,7 @@ export default {
     methods: {
         listConversation() {
             get("/context/list")
-                .then(data => this.conversationList = data.conversations)
+                .then(data => this.conversationList = data)
                 .catch(err => console.log("get context list failed, %s", err))
         },
         getContentHeight() {
@@ -161,11 +161,8 @@ export default {
             post("/context/create", {
                 question: prompt
             }).then(data => {
-                if (data.conversationId) {
-                    this.conversationId = data.conversationId
-                    this.conversationList.push(this.conversationId)
-                    message.success("OK! Let's start talking")
-                }
+                this.conversationList.push(data)
+                message.success("OK! Let's start talking")
             }).catch(err => alert(err))
         },
         send() {
@@ -177,6 +174,19 @@ export default {
                     ask(question, conversationId)
                 }
             }
+        },
+        updateConversationTitle(conversationId) {
+            const { getConversation } = this
+            let conversation = getConversation(conversationId)
+            if (conversation && !conversation.contextTitle) {
+                get("/chat/getTitle/" + conversationId)
+                    .then(data => conversation.contextTitle = data.answer)
+                    .catch(err => alert(err))
+            }
+        },
+        getConversation(conversationId) {
+            const { conversationList } = this
+            return conversationList.find(c => c.contextId === conversationId)
         },
         clear() {
             this.conversationId = ""
@@ -205,6 +215,7 @@ export default {
                     })
                     this.totalTokens = res.totalTokens
                     this.question = ""
+                    this.updateConversationTitle(conversationId)
                 }).catch((err) => {
                     // TODO show error
                     alert(err)
@@ -242,6 +253,7 @@ export default {
                         this.working = false
                         this.question = ""
                         evtSource.close()
+                        this.updateConversationTitle(conversationId)
                     } else {
                         let res = JSON.parse(data)
                         this.messages[index].content += res.answer || ""
@@ -249,17 +261,17 @@ export default {
                 }
                 evtSource.onerror = evt => {
                     this.working = false
+                    alert("error: " + JSON.stringify(evt))
                     if (evtSource.readyState === EventSource.CLOSED) {
                         console.log("close")
                     } else {
-                        alert("error: " + JSON.stringify(evt))
                         evtSource.close()
                     }
                 }
             }
         },
         switchConversation(id) {
-            const { clear } = this
+            const { clear, now } = this
             get("/context/get/" + id).then(data => {
                 clear()
                 this.conversationId = id
@@ -267,11 +279,13 @@ export default {
                     if (m.role !== "system") {
                         this.messages.push({
                             isAnswer: m.role === "assistant",
-                            content: m.content
+                            content: m.content,
+                            time: now(new Date(m.createTime))
                         })
                     }
                 })
                 this.totalTokens = data.totalTokens
+                this.working = false
             }).catch(err => {
                 alert(err)
             })
@@ -282,16 +296,21 @@ export default {
             if (conversationId) {
                 get("/context/delete/" + conversationId).then(() => {
                     clear()
-                    this.conversationList = this.conversationList.filter(v => v !== conversationId)
+                    this.conversationList = this.conversationList.filter(v => v.contextId !== conversationId)
                 }).catch(err => {
                     alert(err)
                 })
             }
         },
+        prefixTime(value) {
+            return value < 10 ? "0" + value : value + ""
+        },
         now(date) {
+            const { prefixTime } = this
             const now = date || new Date()
-            return (now.getHours() < 10 ? "0" + now.getHours() : now.getHours()) + ":"
-                + (now.getMinutes() < 10 ? "0" + now.getMinutes() : now.getMinutes())
+            return `${now.getFullYear()}-${prefixTime(now.getMonth() + 1)}-${prefixTime(now.getDate())} ${prefixTime(now.getHours())}:${prefixTime(now.getMinutes())}`
+            // return (now.getHours() < 10 ? "0" + now.getHours() : now.getHours()) + ":"
+            //     + (now.getMinutes() < 10 ? "0" + now.getMinutes() : now.getMinutes())
         },
         today() {
             const date = new Date()

@@ -5,14 +5,12 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.coodex.openai.api.server.component.ConversationLoader;
+import org.coodex.openai.api.server.data.entity.ChatContextEntity;
 import org.coodex.openai.api.server.data.repo.ChatContextRepo;
 import org.coodex.openai.api.server.data.repo.ChatMessageRepo;
 import org.coodex.openai.api.server.domain.ChatCompletionInvoker;
 import org.coodex.openai.api.server.model.*;
-import org.coodex.openai.api.server.util.CachedContextManager;
-import org.coodex.openai.api.server.util.Const;
-import org.coodex.openai.api.server.util.Counter;
-import org.coodex.openai.api.server.util.IChatCompletionSseCallback;
+import org.coodex.openai.api.server.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +30,8 @@ public class ChatCompletionSvc {
     private static Logger log = LoggerFactory.getLogger(ChatCompletionSvc.class);
     @Value("${openai.maxTokens}")
     private int maxTokens;
+    @Value("${openai.chatTitle.prompt}")
+    private String titlePrompt;
     private ChatCompletionInvoker invoker;
     private ConversationLoader conversationLoader;
     private ChatContextRepo contextRepo;
@@ -52,7 +52,7 @@ public class ChatCompletionSvc {
         ConversationCache cache = conversationLoader.get(session);
         ChatContext context = cache.get(req.getConversationId());
         Assert.notNull(context, "context not found");
-        Assert.isTrue(context.getTotalTokens() < maxTokens, "tokens overflow");
+//        Assert.isTrue(context.getTotalTokens() < maxTokens, "tokens overflow");
         ChatResp resp = new ChatResp();
         resp.setConversationId(req.getConversationId());
         try {
@@ -101,7 +101,7 @@ public class ChatCompletionSvc {
         ConversationCache cache = conversationLoader.get(session);
         ChatContext context = cache.get(conversationId);
         Assert.notNull(context, "context not found");
-        Assert.isTrue(context.getTotalTokens() < maxTokens, "tokens overflow");
+//        Assert.isTrue(context.getTotalTokens() < maxTokens, "tokens overflow");
         SseEmitter emitter = new SseEmitter();
         sseExecutor.execute(() -> {
             try {
@@ -113,5 +113,30 @@ public class ChatCompletionSvc {
             }
         });
         return emitter;
+    }
+
+    @GetMapping("/getTitle/{conversationId}")
+    @RolesAllowed({Const.ROLE_USER, Const.ROLE_ADMIN})
+    public ChatResp conversationTitle(HttpSession session,
+                                      @PathVariable("conversationId") @NotBlank String conversationId) {
+        ConversationCache cache = conversationLoader.get(session);
+        ChatContext context = cache.get(conversationId);
+        Assert.notNull(context, "conversation not found");
+        TransientContextManager transientContextManager = new TransientContextManager(context);
+        try {
+            invoker.ask(titlePrompt, transientContextManager);
+            String title = transientContextManager.getAnswer();
+            ChatContextEntity contextEntity = contextRepo.getReferenceById(conversationId);
+            contextEntity.setContextTitle(title);
+            contextRepo.save(contextEntity);
+            context.setContextTitle(title);
+            ChatResp resp = new ChatResp();
+            resp.setConversationId(conversationId);
+            resp.setAnswer(title);
+            return resp;
+        } catch (IOException e) {
+            log.error(e.getLocalizedMessage(), e);
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -70,7 +70,7 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
                         if (now <= expired) {
                             AccountEntity accountEntity = accountRepo.findById(accountId)
                                     .orElseThrow(() -> new RuntimeException("fail to login"));
-                            Assert.isTrue(now <= accountEntity.getTokenExpired(), "fail to login");
+                            Assert.isTrue(expired == accountEntity.getTokenExpired(), "fail to login");
                             Assert.isTrue(!accountEntity.isLocked(), "fail to login");
                             loginAccount = accountSvc.buildSession(accountEntity, request.getSession());
                         }

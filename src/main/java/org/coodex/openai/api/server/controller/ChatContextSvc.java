@@ -9,6 +9,7 @@ import org.coodex.openai.api.server.data.repo.ChatContextRepo;
 import org.coodex.openai.api.server.data.repo.ChatMessageRepo;
 import org.coodex.openai.api.server.model.*;
 import org.coodex.openai.api.server.util.Const;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -34,39 +35,43 @@ public class ChatContextSvc {
 
     @GetMapping("/list")
     @RolesAllowed({ Const.ROLE_USER, Const.ROLE_ADMIN })
-    public ContextListResp listContext(HttpSession session) {
+    public ChatContextResp[] listContext(HttpSession session) {
         ConversationCache cache = conversationLoader.get(session);
-        List<String> list = new ArrayList<>();
-        cache.iterate(context -> list.add(context.getContextId()));
-        ContextListResp resp = new ContextListResp();
-        resp.setConversations(list.toArray(new String[0]));
-        return resp;
+        List<ChatContextResp> list = new ArrayList<>();
+        cache.iterate(context -> {
+            ChatContextResp resp = new ChatContextResp();
+            resp.setContextId(context.getContextId());
+            resp.setContextTitle(context.getContextTitle());
+            resp.setCreateTime(context.getCreateTime());
+            list.add(resp);
+        });
+        return list.toArray(new ChatContextResp[0]);
     }
 
     @PostMapping("/create")
     @RolesAllowed({ Const.ROLE_USER, Const.ROLE_ADMIN })
     @Transactional
-    public ContextResp createChatContext(HttpSession session, @RequestBody PromptReq req) {
+    public ChatContextResp createChatContext(HttpSession session, @RequestBody PromptReq req) {
         LoginAccount loginAccount = (LoginAccount) session.getAttribute(LoginAccount.SESSION_NAME);
         ChatContextEntity contextEntity = new ChatContextEntity();
         contextEntity.setAccountId(loginAccount.getAccountId());
-        contextEntity.setContextTitle("New conversation");
         contextRepo.save(contextEntity);
         ChatContext context = new ChatContext();
         context.setContextId(contextEntity.getContextId());
         context.setContextTitle(context.getContextTitle());
+        context.setCreateTime(contextEntity.getCreateTime());
         if (StringUtils.hasText(req.getQuestion())) {
             ChatMessageEntity messageEntity = new ChatMessageEntity();
             messageEntity.setContextId(contextEntity.getContextId());
             messageEntity.setRole(ChatRole.SYSTEM.toString());
             messageEntity.setMessage(req.getQuestion());
             messageRepo.save(messageEntity);
-            context.addMessage(ChatRole.SYSTEM, req.getQuestion());
+            context.addMessage(ChatRole.SYSTEM, req.getQuestion(), messageEntity.getCreateTime());
         }
         ConversationCache cache = conversationLoader.get(session);
         cache.add(context);
-        ContextResp resp = new ContextResp();
-        resp.setConversationId(contextEntity.getContextId());
+        ChatContextResp resp = new ChatContextResp();
+        BeanUtils.copyProperties(contextEntity, resp);
         return resp;
     }
 

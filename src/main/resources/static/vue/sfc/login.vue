@@ -57,6 +57,11 @@ export default {
             return !formState.username || !formState.password
         }
     },
+    mounted() {
+        if (sessionStorage.sessionId || localStorage.token) {
+            this.$router.push("/chat")
+        }
+    },
     methods: {
         login() {
             const { username, password, autoLogin } = this.formState

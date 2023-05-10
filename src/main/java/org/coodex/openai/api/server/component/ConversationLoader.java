@@ -32,8 +32,9 @@ public class ConversationLoader {
                 ChatContext context = new ChatContext();
                 context.setContextId(contextEntity.getContextId());
                 context.setContextTitle(contextEntity.getContextTitle());
+                context.setCreateTime(contextEntity.getCreateTime());
                 for (ChatMessageEntity messageEntity : messageRepo.findByContextIdOrderByCreateTime(context.getContextId())) {
-                    context.addMessage(ChatRole.valueOf(messageEntity.getRole()), messageEntity.getMessage());
+                    context.addMessage(ChatRole.of(messageEntity.getRole()), messageEntity.getMessage(), messageEntity.getCreateTime());
                     context.addTokenUsage(messageEntity.getPromptTokens(), messageEntity.getCompletionTokens(),
                             messageEntity.getTotalTokens());
                 }
