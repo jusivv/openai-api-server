@@ -22,7 +22,7 @@ openai:
   model: ${OPENAI_MODEL:gpt-3.5-turbo}
   temperature: ${OPENAI_TEMPERATURE:1}
   maxTokens: ${OPENAI_MAX_TOKENS:2048}
-  reduceToken: ${OPENAI_REDUCE_TOKEN:true}
+  reduceToken: ${OPENAI_REDUCE_TOKEN:false}
   timeout:
     connect: ${OPENAI_TIMEOUT_CONNECT:180}
     read: ${OPENAI_TIMEOUT_READ:180}
@@ -39,7 +39,7 @@ openai:
     user: ${OPENAI_PROXY_USER:}
     pass: ${OPENAI_PROXY_PASS:}
   chatTitle:
-    prompt: "${OPENAI_CHAT_TITLE_PROMPT:请用十个以内的汉字描述一下我们谈话的主题，回答中不要带有任何标点符号！}"
+    prompt: "${OPENAI_CHAT_TITLE_PROMPT:请用十个以内的汉字描述一下我们谈话的主题，你的回答中不要有逗号、句号、引号。}"
 app:
   serverUrl: ${SERVER_URL:http://localhost:8080}
   admin:

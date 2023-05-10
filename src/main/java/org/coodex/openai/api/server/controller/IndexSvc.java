@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class IndexSvc {
     @GetMapping("/")
     public String index(HttpSession session) {
-//        return session.getAttribute(LoginAccount.SESSION_NAME) != null ? "chat" : "login";
         return "main";
     }
 }

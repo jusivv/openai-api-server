@@ -1,11 +1,36 @@
 <template>
     <div id="root">
         <a-layout style="min-height: 100%">
-            <a-layout-header>
-                <p class="txt-title">ChatGPT</p>
+            <a-layout-header :style="{padding: '10px'}">
+                <a-page-header :style="{width: '100%', height: '100%', padding: '0px'}">
+                    <template #tags>
+                        <span class="txt-title">AI Box</span>
+                        &nbsp;
+                        <a-tag color="grey">Bata</a-tag>
+                    </template>
+                    <template #extra>
+                        <a-dropdown placement="bottomRight" :trigger="['click']">
+                            <a-button type="primary" shape="circle" size="large" :style="{'font-size': '12px', 'border': '0px'}">姓名</a-button>
+                            <template #overlay>
+                                <a-menu @click="menuClick">
+                                    <a-menu-item key="accountMgmt">
+                                        账号管理
+                                    </a-menu-item>
+                                    <a-menu-item key="changePass">
+                                        修改密码
+                                    </a-menu-item>
+                                    <a-menu-item key="logout">
+                                        退出
+                                    </a-menu-item>
+                                </a-menu>
+                            </template>
+                        </a-dropdown>
+                    </template>
+                </a-page-header>
             </a-layout-header>
             <a-layout>
-                <a-layout-sider breakpoint="md" collapsed-width="0" theme="light">
+                <a-layout-sider breakpoint="md" collapsed-width="0" theme="light"
+                                :style="{'border-right-width': '1px','border-right-style': 'solid', 'border-right-color': 'lightgray'}">
                     <a-layout style="min-height: 100%">
                         <a-layout-content style="padding: 5px">
                             <a-space direction="vertical" :style="{width: '100%'}">
@@ -162,6 +187,7 @@ export default {
                 question: prompt
             }).then(data => {
                 this.conversationList.push(data)
+                this.conversationId = data.contextId
                 message.success("OK! Let's start talking")
             }).catch(err => alert(err))
         },
@@ -312,12 +338,35 @@ export default {
             // return (now.getHours() < 10 ? "0" + now.getHours() : now.getHours()) + ":"
             //     + (now.getMinutes() < 10 ? "0" + now.getMinutes() : now.getMinutes())
         },
-        today() {
-            const date = new Date()
-            let m = date.getMonth() + 1
-            return date.getFullYear() + "-" + (m < 10 ? "0" + m : m) + "-"
-                + (date.getDate() < 10 ? "0" + date.getDate() : date.getDate())
-                + " " + this.now(date)
+        menuClick({ key }) {
+            let func = this[key]
+            if (func) {
+                func()
+            } else {
+                alert("processor not found for " + key)
+            }
+        },
+        accountMgmt() {
+            alert("account management")
+        },
+        changePass() {
+            alert("change password")
+        },
+        logout() {
+            const { Modal } = antd
+            Modal.confirm({
+                title: 'Confirm',
+                content: 'What do you want ?',
+                okText: 'Exit',
+                cancelText: 'Stay',
+                onOk: () => {
+                    get("/account/logout").then(() => {
+                        sessionStorage.removeItem("sessionId")
+                        localStorage.removeItem("token")
+                        this.$router.push("/login")
+                    })
+                }
+            })
         }
     }
 }

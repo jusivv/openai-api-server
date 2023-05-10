@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.coodex.openai.api.server.data.entity.AccountEntity;
 import org.coodex.openai.api.server.data.repo.AccountRepo;
 import org.coodex.openai.api.server.data.repo.AccountRoleRepo;
+import org.coodex.openai.api.server.model.CommonResp;
 import org.coodex.openai.api.server.model.LoginAccount;
 import org.coodex.openai.api.server.model.LoginReq;
 import org.coodex.openai.api.server.model.LoginResp;
@@ -91,7 +92,7 @@ public class AccountSvc {
 
     @GetMapping("logout")
     @RolesAllowed({})
-    public String logout(HttpSession session) {
+    public CommonResp logout(HttpSession session) {
         LoginAccount loginAccount = (LoginAccount) session.getAttribute(LoginAccount.SESSION_NAME);
         if (loginAccount != null) {
             AccountEntity accountEntity = accountRepo.getReferenceById(loginAccount.getAccountId());
@@ -99,7 +100,7 @@ public class AccountSvc {
             accountRepo.save(accountEntity);
             session.invalidate();
         }
-        return "OK";
+        return CommonResp.build(0, "OK");
     }
 
 
