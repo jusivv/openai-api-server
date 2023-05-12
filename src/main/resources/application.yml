@@ -39,13 +39,17 @@ openai:
     user: ${OPENAI_PROXY_USER:}
     pass: ${OPENAI_PROXY_PASS:}
   chatTitle:
-    prompt: "${OPENAI_CHAT_TITLE_PROMPT:请用十个以内的汉字描述一下我们谈话的主题，你的回答中不要有逗号、句号、引号。}"
+    prompt: "${OPENAI_CHAT_TITLE_PROMPT:Please generate a four to five word title summarizing our conversation without any lead-in, punctuation, quotation marks, periods, symbols, or additional text. Remove enclosing quotation marks.}"
+  defaultPrompt: "${OPENAI_DEFAULT_PROMPT:}"
 app:
   serverUrl: ${SERVER_URL:http://localhost:8080}
+  title: "${APP_TITLE:ChatGPT}"
+  version: "${APP_VERSION:Beta}"
   admin:
     user: "${ADMIN_USER:admin}"
     pass: "${ADMIN_PASS:}"
   token:
     expire-days: ${TOKEN_EXPIRE_DAYS:10}
     key: "${TOKEN_AES_KEY:WDa5x1+/y3NagFX22jcUsQ==}"
+  useWatermark: ${APP_USE_WATERMARK:false}
 

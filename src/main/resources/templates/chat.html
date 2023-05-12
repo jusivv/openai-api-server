@@ -1,116 +1,92 @@
 <template>
-    <div id="root">
-        <a-layout style="min-height: 100%">
-            <a-layout-header :style="{padding: '10px'}">
-                <a-page-header :style="{width: '100%', height: '100%', padding: '0px'}">
-                    <template #tags>
-                        <span class="txt-title">AI Box</span>
-                        &nbsp;
-                        <a-tag color="grey">Bata</a-tag>
-                    </template>
-                    <template #extra>
-                        <a-dropdown placement="bottomRight" :trigger="['click']">
-                            <a-button type="primary" shape="circle" size="large" :style="{'font-size': '12px', 'border': '0px'}">姓名</a-button>
-                            <template #overlay>
-                                <a-menu @click="menuClick">
-                                    <a-menu-item key="accountMgmt">
-                                        账号管理
-                                    </a-menu-item>
-                                    <a-menu-item key="changePass">
-                                        修改密码
-                                    </a-menu-item>
-                                    <a-menu-item key="logout">
-                                        退出
-                                    </a-menu-item>
-                                </a-menu>
-                            </template>
-                        </a-dropdown>
-                    </template>
-                </a-page-header>
-            </a-layout-header>
-            <a-layout>
-                <a-layout-sider breakpoint="md" collapsed-width="0" theme="light"
-                                :style="{'border-right-width': '1px','border-right-style': 'solid', 'border-right-color': 'lightgray'}">
-                    <a-layout style="min-height: 100%">
-                        <a-layout-content style="padding: 5px">
-                            <a-space direction="vertical" :style="{width: '100%'}">
-                                <a-button v-for="(c, i) in conversationList"
-                                          :type="c.contextId === conversationId ? 'primary' : ''"
-                                          block
-                                          @click="switchConversation(c.contextId)">
-                                    {{c.contextTitle || "New conversation"}}
-                                </a-button>
-                            </a-space>
-                        </a-layout-content>
-                        <a-layout-footer :style="{padding: '10px'}">
-                            <a-space direction="vertical" :style="{width: '100%'}">
-                                <a-button type="primary" block ghost @click="newChat">New chat</a-button>
-                                <a-button type="primary" block ghost danger>Clear all</a-button>
-                                <a-space>
-                                    <a-switch v-model:checked="showMarkdown" checked-children="M" un-checked-children="H"></a-switch>
-                                    <a-switch v-model:checked="useStream" checked-children="S" un-checked-children="N"></a-switch>
-                                </a-space>
-                            </a-space>
-                        </a-layout-footer>
-                    </a-layout>
-                </a-layout-sider>
-                <a-layout>
-                    <a-layout-content ref="chat-layout" :style="{overflow: 'auto', padding: '10px', height: 'calc(100vh - 170px)'}">
-                        <div ref="chat-content" :hidden="showMarkdown">
-                            <div v-for="message in messages">
-                                <div v-if="message.isAnswer" class="speaker">
-                                    <a-avatar style="color: #f56a00; background-color: #fde3cf">
-                                        GPT
-                                    </a-avatar>
-                                    ({{ message.time || now() }})
-                                </div>
-                                <div v-else  class="speaker">
-                                    <a-avatar style="background-color: #87d068">
-                                        Me
-                                    </a-avatar>
-                                    ({{ message.time || now() }})
-                                </div>
-<!--                                <div class="speaker">{{message.isAnswer ? 'ChatGPT:' : 'Me:'}}&nbsp;({{now()}})</div>-->
-                                <div v-if="message.isAnswer" style="padding-left: 40px" v-html="parseHtml(message.content)">
-                                </div>
-                                <div v-else  style="padding-left: 40px">{{message.content}}</div>
-                                <br/>
-                            </div>
-                            <div v-if="!useStream && working">
-                                <a-spin />
-                            </div>
-                        </div>
-                        <div :hidden="!showMarkdown" style="height: 100%">
-                            <textarea style="height: 100%; width: 100%">{{mdContent}}</textarea>
-                        </div>
+    <a-layout style="min-height: 100vh">
+        <page-header></page-header>
+        <a-layout>
+            <a-layout-sider breakpoint="md" collapsed-width="0" theme="light"
+                            :style="{'border-right-width': '1px','border-right-style': 'solid', 'border-right-color': 'lightgray'}">
+                <a-layout style="min-height: 100%">
+                    <a-layout-content style="padding: 5px">
+                        <a-space direction="vertical" :style="{width: '100%'}">
+                            <a-button v-for="(c, i) in conversationList"
+                                      :type="c.contextId === conversationId ? 'primary' : ''"
+                                      block
+                                      @click="switchConversation(c.contextId)">
+                                {{c.contextTitle || "New conversation"}}
+                            </a-button>
+                        </a-space>
                     </a-layout-content>
                     <a-layout-footer :style="{padding: '10px'}">
-                        <a-input-group compact>
-                            <a-textarea v-model:value="question" placeholder="Let's talk about ..." style="width: calc(100% - 140px); height: 60px" :disabled="working"></a-textarea>
-                            <a-button type="primary" style="height: 60px" :disabled="!canSend" @click="send">Send</a-button>
-                            <a-popconfirm
-                                    title="Delete this conversation ?"
-                                    ok-text="Yes"
-                                    cancel-text="No"
-                                    @confirm="deleteConversation"
-                                    :disabled="conversationId === ''"
-                            >
-                                <a-button type="primary" ghost style="height: 60px" :disabled="working">Delete</a-button>
-                            </a-popconfirm>
-                        </a-input-group>
+                        <a-space direction="vertical" :style="{width: '100%'}">
+                            <a-button type="primary" block ghost @click="newChat">New chat</a-button>
+                            <a-button type="primary" block ghost danger>Clear all</a-button>
+                            <a-space>
+                                <a-switch v-model:checked="showMarkdown" checked-children="M" un-checked-children="H"></a-switch>
+                                <a-switch v-model:checked="useStream" checked-children="S" un-checked-children="N"></a-switch>
+                            </a-space>
+                        </a-space>
                     </a-layout-footer>
                 </a-layout>
+            </a-layout-sider>
+            <a-layout>
+                <a-layout-content id="chat-layout" ref="chat-layout" :style="{overflow: 'auto', padding: '10px', height: 'calc(100vh - 170px)'}">
+                    <div ref="chat-content" :hidden="showMarkdown">
+                        <div v-for="message in messages">
+                            <div v-if="message.isAnswer" class="speaker">
+                                <a-avatar style="color: #f56a00; background-color: #fde3cf">
+                                    GPT
+                                </a-avatar>
+                                ({{ message.time || now() }})
+                            </div>
+                            <div v-else  class="speaker">
+                                <a-avatar style="background-color: #87d068">
+                                    Me
+                                </a-avatar>
+                                ({{ message.time || now() }})
+                            </div>
+<!--                                <div class="speaker">{{message.isAnswer ? 'ChatGPT:' : 'Me:'}}&nbsp;({{now()}})</div>-->
+                            <div v-if="message.isAnswer" style="padding-left: 40px" v-html="parseHtml(message.content)">
+                            </div>
+                            <div v-else  style="padding-left: 40px">{{message.content}}</div>
+                            <br/>
+                        </div>
+                        <div v-if="!useStream && working">
+                            <a-spin />
+                        </div>
+                    </div>
+                    <div :hidden="!showMarkdown" style="height: 100%">
+                        <textarea style="height: 100%; width: 100%">{{mdContent}}</textarea>
+                    </div>
+                </a-layout-content>
+                <a-layout-footer :style="{padding: '10px'}">
+                    <a-input-group compact>
+                        <a-textarea v-model:value="question" :placeholder="questionPlaceholder" style="width: calc(100% - 140px); height: 60px" :disabled="working"></a-textarea>
+                        <a-button type="primary" style="height: 60px" :disabled="!canSend" @click="send">Send</a-button>
+                        <a-popconfirm
+                                title="Delete this conversation ?"
+                                ok-text="Yes"
+                                cancel-text="No"
+                                @confirm="deleteConversation"
+                                :disabled="conversationId === ''"
+                        >
+                            <a-button type="primary" ghost style="height: 60px" :disabled="working">Delete</a-button>
+                        </a-popconfirm>
+                    </a-input-group>
+                </a-layout-footer>
             </a-layout>
         </a-layout>
-    </div>
+    </a-layout>
 </template>
 <script type="module">
-const { createApp } = Vue
 import { post, get } from "/app/request.js"
 import { marked } from "/md/marked.esm.js"
-const prompt = "你好！我的AI助手"
+const { loadModule } = window["vue3-sfc-loader"]
+import options from "/app/vue-sfc-loader-options.js"
+const prompt = "[[${@appConfig.defaultPrompt}]]"
 export default {
     name: "Chat",
+    components: {
+        'page-header': Vue.defineAsyncComponent(() => loadModule('/header.vue', options))
+    },
     data() {
         return {
             question: "",
@@ -122,12 +98,16 @@ export default {
             lastContentHeight: 0,
             showMarkdown: false,
             useStream: true,
+            imgWater: null
         }
     },
     computed: {
         canSend() {
             const { conversationId, question, working } = this
             return question.trim().length > 0 && !working && conversationId
+        },
+        questionPlaceholder() {
+            return this.conversationId ? "Let's talk about ..." : "Click [New chat] or select existing conversation !"
         },
         mdContent() {
             const { messages } = this
@@ -146,13 +126,14 @@ export default {
     mounted() {
         if (!sessionStorage.sessionId && !localStorage.token) {
             this.$router.push("/login")
+        } else {
+            new MutationObserver(() => {
+                this.flushContent()
+            }).observe(this.$refs["chat-content"], {
+                childList: true
+            })
+            this.listConversation()
         }
-        new MutationObserver(() => {
-            this.flushContent()
-        }).observe(this.$refs["chat-content"], {
-            childList: true
-        })
-        this.listConversation()
     },
     methods: {
         listConversation() {
@@ -335,38 +316,6 @@ export default {
             const { prefixTime } = this
             const now = date || new Date()
             return `${now.getFullYear()}-${prefixTime(now.getMonth() + 1)}-${prefixTime(now.getDate())} ${prefixTime(now.getHours())}:${prefixTime(now.getMinutes())}`
-            // return (now.getHours() < 10 ? "0" + now.getHours() : now.getHours()) + ":"
-            //     + (now.getMinutes() < 10 ? "0" + now.getMinutes() : now.getMinutes())
-        },
-        menuClick({ key }) {
-            let func = this[key]
-            if (func) {
-                func()
-            } else {
-                alert("processor not found for " + key)
-            }
-        },
-        accountMgmt() {
-            alert("account management")
-        },
-        changePass() {
-            alert("change password")
-        },
-        logout() {
-            const { Modal } = antd
-            Modal.confirm({
-                title: 'Confirm',
-                content: 'What do you want ?',
-                okText: 'Exit',
-                cancelText: 'Stay',
-                onOk: () => {
-                    get("/account/logout").then(() => {
-                        sessionStorage.removeItem("sessionId")
-                        localStorage.removeItem("token")
-                        this.$router.push("/login")
-                    })
-                }
-            })
         }
     }
 }

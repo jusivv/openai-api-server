@@ -19,7 +19,7 @@ public class AccountEntity {
     @Column(length = 100, nullable = false)
     private String accountPass;
 
-    @Column(length = 100)
+    @Column(length = 10)
     private String displayName;
 
     private boolean locked;

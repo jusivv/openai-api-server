@@ -8,4 +8,16 @@ public class ApplicationConfig {
 
     @Value("${app.token.expire-days}")
     public String tokenExpireDays;
+
+    @Value("${app.title}")
+    public String title;
+
+    @Value("${app.version}")
+    public String version;
+
+    @Value("${openai.defaultPrompt}")
+    public String defaultPrompt;
+
+    @Value("${app.useWatermark}")
+    public boolean useWatermark;
 }

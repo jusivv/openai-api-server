@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.util.Assert;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -69,10 +68,11 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
                         long now = System.currentTimeMillis();
                         if (now <= expired) {
                             AccountEntity accountEntity = accountRepo.findById(accountId)
-                                    .orElseThrow(() -> new RuntimeException("fail to login"));
-                            Assert.isTrue(expired == accountEntity.getTokenExpired(), "fail to login");
-                            Assert.isTrue(!accountEntity.isLocked(), "fail to login");
-                            loginAccount = accountSvc.buildSession(accountEntity, request.getSession());
+                                    .orElse(null);
+                            if (accountEntity != null && expired == accountEntity.getTokenExpired()
+                                    && !accountEntity.isLocked()) {
+                                loginAccount = accountSvc.buildSession(accountEntity, request.getSession());
+                            }
                         }
                     }
                 }
@@ -110,9 +110,9 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
             }
         }
 //        response.sendRedirect("/");
-        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.getWriter().println(String.format("{\"code\": %d, \"message\": \"%s\"}",
-                response.getStatus(), "forbidden"));
+                HttpServletResponse.SC_UNAUTHORIZED, "UNAUTHORIZED"));
         return false;
     }
 }

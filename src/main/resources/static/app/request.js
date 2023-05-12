@@ -41,7 +41,13 @@ function get(action) {
             if (response.ok) {
                 response.json().then(data => resolve(data))
             } else {
-                response.json().then(data => reject(data.code + ": " + data.message))
+                if (response.status === 401) {
+                    sessionStorage.removeItem("sessionId")
+                    localStorage.removeItem("token")
+                    window.location.replace("/")
+                } else {
+                    response.json().then(data => reject(data.code + ": " + data.message))
+                }
             }
         }).catch(err => {
             reject(err)

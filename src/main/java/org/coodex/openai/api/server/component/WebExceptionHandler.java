@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 @ControllerAdvice
 public class WebExceptionHandler {
     @ExceptionHandler({ Exception.class })
-//    @ResponseBody
     public ResponseEntity<CommonResp> handle(Exception e) {
         return ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON)
                 .body(CommonResp.build(400, e.getLocalizedMessage()));

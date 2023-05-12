@@ -1,0 +1,198 @@
+<template>
+    <a-page-header :style="{width: '100%', height: '60px', padding: '5px 5px 5px 5px', 'backgroundColor': '#001529'}">
+        <template #tags>
+            <span class="txt-title">[[${@appConfig.title}]]</span>
+            &nbsp;
+            <a-tag color="grey">[[${@appConfig.version}]]</a-tag>
+        </template>
+        <template #extra>
+            <a-dropdown placement="bottomRight" :trigger="['click']">
+                <a-avatar shape="square"
+                          size="large"
+                          :style="{'font-size': '12px', 'backgroundColor': '#1890ff'}">
+                    {{accountInfo.displayName}}
+                </a-avatar>
+                <template #overlay>
+                    <a-menu @click="menuClick">
+                        <a-menu-item key="toChat">
+                            Chat
+                        </a-menu-item>
+                        <a-menu-item v-if="isAdmin" key="accountMgmt">
+                            Account
+                        </a-menu-item>
+                        <a-menu-item key="changePassForm">
+                            Password
+                        </a-menu-item>
+                        <a-menu-item key="logout">
+                            Exit
+                        </a-menu-item>
+                    </a-menu>
+                </template>
+            </a-dropdown>
+        </template>
+    </a-page-header>
+    <a-modal v-model:visible="showChangePass"
+             title="Change password"
+             :confirm-loading="confirmLoading"
+             :okButtonProps="btnPassProps"
+             @ok="changePass">
+        <a-form
+                :model="formPass"
+                name="changePass"
+                :label-col="{ span: 8 }"
+                :wrapper-col="{ span: 16 }"
+                autocomplete="off"
+        >
+            <a-form-item
+                    label="Current password"
+                    name="currentPass"
+                    :rules="[{ required: true, message: 'Please input your password!' }]"
+            >
+                <a-input-password v-model:value="formPass.currentPass" />
+            </a-form-item>
+            <a-form-item
+                    label="New password"
+                    name="newPass"
+                    :rules="[{ required: true, message: 'Please input new password!' }]"
+            >
+                <a-input-password v-model:value="formPass.newPass" />
+            </a-form-item>
+            <a-form-item
+                    label="Confirm password"
+                    name="confirmPass"
+                    :rules="[{ required: true, message: 'Please confirm new password!' }]"
+            >
+                <a-input-password v-model:value="formPass.confirmPass" />
+            </a-form-item>
+        </a-form>
+    </a-modal>
+</template>
+<script type="module">
+    import { get, post } from "/app/request.js"
+    const { loadModule } = window["vue3-sfc-loader"]
+    import options from "/app/vue-sfc-loader-options.js"
+    import genWatermark from "/app/watermark.js"
+    const userWatermark = [[${@appConfig.useWatermark}]]
+    export default {
+        name: "PageHeader",
+        data() {
+            return {
+                accountInfo: {
+                    accountId: "",
+                    displayName: "NONE",
+                    roles: []
+                },
+                formPass: {
+                    currentPass: "",
+                    newPass: "",
+                    confirmPass: ""
+                },
+                showChangePass: false,
+                confirmLoading: false
+            }
+        },
+        computed: {
+            isAdmin() {
+                return this.accountInfo.roles.filter(role => role === "ADMIN").length > 0
+            },
+            btnPassProps() {
+                const { currentPass, newPass, confirmPass } = this.formPass
+                return {
+                    disabled: !(currentPass && newPass && confirmPass)
+                }
+            }
+        },
+        mounted() {
+            get("/account/info").then(data => {
+                this.accountInfo = data
+                if (this.isAdmin) {
+                    this.$router.addRoute({
+                        path: "/account", name: "account",
+                        component: Vue.defineAsyncComponent(() => loadModule("/account.vue", options))})
+                } else {
+                    this.$router.removeRoute("account")
+                }
+                // add watermark
+                if (userWatermark) {
+                    const watermark = genWatermark(data.accountId);
+                    const chatLayout = document.getElementById("chat-layout")
+                    if (chatLayout) {
+                        chatLayout.style.backgroundImage = `url(${watermark})`
+                    }
+                }
+            }).catch(err => alert(err))
+        },
+        methods: {
+            menuClick({ key }) {
+                let func = this[key]
+                if (func) {
+                    func()
+                } else {
+                    alert("processor not found for " + key)
+                }
+            },
+            toChat() {
+                this.$router.push("/chat")
+            },
+            accountMgmt() {
+                if (this.isAdmin) {
+                    this.$router.push("/account")
+                }
+            },
+            changePassForm() {
+                this.showChangePass = true
+            },
+            changePass() {
+                const { message } = antd
+                const { currentPass, newPass, confirmPass } = this.formPass
+                if (!(currentPass && newPass && confirmPass)) {
+                    message.error("Please fill in all the required fields.")
+                    return;
+                }
+                if ( newPass !== confirmPass) {
+                    message.error("The passwords entered do not match.")
+                    return;
+                }
+                // check strength of password
+                let regexp = new RegExp(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{8,16}$/)
+                if(!regexp.test(newPass)) {
+                    message.error("Password length should between 8 and 16, both upper and lowercase letters, numbers required.")
+                    return;
+                }
+                this.confirmLoading = true;
+                post("/account/changePass", {
+                    currentPass,
+                    newPass
+                }).then(() => {
+                    this.showChangePass = false
+                    this.confirmLoading = false
+                    this.formPass = {
+                        currentPass: "",
+                        newPass: "",
+                        confirmPass: ""
+                    }
+                    message.success("Password modified !")
+                }).catch(err => {
+                    this.confirmLoading = false
+                    alert(err)
+                })
+            },
+            logout() {
+                const { Modal } = antd
+                Modal.confirm({
+                    title: 'Confirm',
+                    content: 'What do you want ?',
+                    okText: 'Exit',
+                    cancelText: 'Stay',
+                    onOk: () => {
+                        get("/account/logout").then(() => {
+                            sessionStorage.removeItem("sessionId")
+                            localStorage.removeItem("token")
+                            this.$router.push("/login")
+                        })
+                    }
+                })
+            }
+        }
+    }
+</script>

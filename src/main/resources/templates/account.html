@@ -1,0 +1,272 @@
+<template>
+    <a-layout style="min-height: 100vh">
+        <page-header></page-header>
+        <a-layout-content>
+            <a-space :style="{ 'padding': '3px 3px 3px 3px', 'height': '35px'}">
+                <a-button @click="listAccount">Refresh</a-button>
+                <a-button @click="showEditForm(null)">Add</a-button>
+            </a-space>
+            <div :style="{'margin': '0px', 'padding': '0px', 'height': 'calc(100vh - 150px)'}">
+                <a-table :columns="columns" :dataSource="accountList" :pagination="false"
+                         :scroll="tableScrollHeight">
+                    <template #bodyCell="{ column, record }">
+                        <template v-if="column.key === 'admin'">
+                            <a-tag :color="record.admin ? 'geekblue' : 'green'">
+                                {{ record.admin ? "Admin" : "User" }}
+                            </a-tag>
+                        </template>
+                        <template v-if="column.key === 'locked'">
+                            <a-tag :color="record.locked ? 'volcano' : 'green'">
+                                {{ record.locked ? "Locked" : "Normal" }}
+                            </a-tag>
+                        </template>
+                        <template v-if="column.key === 'action'">
+                            <a-space>
+                                <a-button size="small" @click="showEditForm(record)">Detail</a-button>
+                                <a-button size="small" @click="resetPass(record)">Reset Pass</a-button>
+                                <a-button danger size="small" @click="deleteAccount(record)">Delete</a-button>
+                            </a-space>
+                        </template>
+                    </template>
+                </a-table>
+            </div>
+            <div :style="{'text-align': 'right', 'padding': '5px', 'height': '55px'}">
+                <a-pagination v-model:current="page.current"
+                              :total="page.total"
+                              v-model:pageSize="page.size"
+                              show-less-items
+                              :show-total="total => `Total ${total} accounts`"
+                              @change="listAccount"
+                >
+                </a-pagination>
+            </div>
+        </a-layout-content>
+    </a-layout>
+    <a-modal v-model:visible="editFormVisible"
+             title="Edit account"
+             :confirm-loading="confirmLoading"
+             :okButtonProps="btnEditProps"
+             @ok="saveAccount">
+        <a-form
+                :model="formAccount"
+                name="editAccount"
+                :label-col="{ span: 8 }"
+                :wrapper-col="{ span: 16 }"
+                autocomplete="off"
+        >
+            <a-form-item
+                    label="Account"
+                    name="accountName"
+                    :rules="[{ required: true, message: 'Please input your account!' }]"
+            >
+                <a-input v-model:value="formAccount.accountName" />
+            </a-form-item>
+            <a-form-item
+                    label="Name"
+                    name="displayName"
+                    :rules="[{ required: true, message: 'Please input name!' }]"
+            >
+                <a-input v-model:value="formAccount.displayName" />
+            </a-form-item>
+            <a-form-item
+                    label="Administrator"
+                    name="admin"
+            >
+                <a-switch v-model:checked="formAccount.admin" checked-children="Y" un-checked-children="N"></a-switch>
+            </a-form-item>
+            <a-form-item
+                    label="Locked"
+                    name="locked"
+            >
+                <a-switch v-model:checked="formAccount.locked" checked-children="Y" un-checked-children="N"></a-switch>
+            </a-form-item>
+        </a-form>
+    </a-modal>
+</template>
+<script type="module">
+    import { post, get } from "/app/request.js"
+    const { loadModule } = window["vue3-sfc-loader"]
+    import options from "/app/vue-sfc-loader-options.js"
+    const { Modal, message } = antd
+    const { h } = Vue
+    export default {
+        name: "Account",
+        components: {
+            'page-header': Vue.defineAsyncComponent(() => loadModule('/header.vue', options))
+        },
+        data() {
+            return {
+                columns: [
+                    {
+                        title: "Account",
+                        dataIndex: "accountName",
+                        key: "acountName",
+                        width: 150
+                    },
+                    {
+                        title: "Name",
+                        dataIndex: "displayName",
+                        key: "displayName",
+                        width: 150
+                    },
+                    {
+                        title: "Admin",
+                        dataIndex: "admin",
+                        key: "admin",
+                        width: 150
+                    },
+                    {
+                        title: "Locked",
+                        dataIndex: "locked",
+                        key: "locked",
+                        width: 150
+                    },
+                    {
+                        title: "Action",
+                        dataIndex: "action",
+                        key: "action"
+                    }
+                ],
+                accountList: [],
+                editFormVisible: false,
+                confirmLoading: false,
+                emptyAccount: {
+                    accountId: null,
+                    accountName: "",
+                    displayName: "",
+                    admin: false,
+                    locked: false
+                },
+                formAccount: {
+                    ...this.emptyAccount
+                },
+                page: {
+                    current: 1,
+                    total: 0,
+                    size: 10
+                }
+            }
+        },
+        computed: {
+            btnEditProps() {
+                const { accountName, displayName } = this.formAccount
+                return { disabled: !(accountName && displayName) }
+            },
+            tableScrollHeight() {
+                return { y: window.innerHeight - 205}
+            }
+        },
+        mounted() {
+            if (!sessionStorage.sessionId && !localStorage.token) {
+                this.$router.push("/login")
+            } else {
+                this.listAccount()
+            }
+        },
+        methods: {
+            listAccount() {
+                const n = this.page.current > 0 ? this.page.current - 1 : 0;
+                get(`/account/list/${n}`).then(data => {
+                    const { content, number, totalElements, size } = data
+                    this.accountList = []
+                    content.map(data => this.accountList.push({ ...data }))
+                    this.page = {
+                        current: number + 1,
+                        total: totalElements,
+                        size
+                    }
+                    console.log("account page: %o", page)
+                })
+            },
+            showEditForm(account) {
+                if(account) {
+                    this.formAccount = account
+                } else {
+                    this.formAccount = {
+                        ...this.emptyAccount
+                    }
+                }
+                this.editFormVisible = true
+            },
+            saveAccount() {
+                const { accountId, accountName, displayName, admin, locked } = this.formAccount
+                if (accountName && displayName) {
+                    this.confirmLoading = true
+                    if (accountId) {
+                        // update
+                        post("/account/update", {
+                            accountId,
+                            accountName,
+                            displayName,
+                            admin,
+                            locked
+                        }).then(() => {
+                            this.editFormVisible = false
+                            this.confirmLoading = false
+                            message.success("Account updated !")
+                        }).catch(err => {
+                            this.confirmLoading = false
+                            alert(err)
+                        })
+                    } else {
+                        // new
+                        post("/account/add", {
+                            accountName,
+                            displayName,
+                            admin,
+                            locked
+                        }).then(({ message: pass }) => {
+                            this.editFormVisible = false
+                            this.confirmLoading = false
+                            this.formAccount = {
+                                ...this.emptyAccount
+                            }
+                            this.listAccount()
+                            Modal.confirm({
+                                title: "Success !",
+                                content: `Account [${accountName}] created with password [${pass}]`
+                            })
+                        }).catch(err => {
+                            this.confirmLoading = false
+                            alert(err)
+                        })
+                    }
+                } else {
+                    message.error("Please fill Account & Name !")
+                }
+            },
+            resetPass(account) {
+                if (account && account.accountId) {
+                    Modal.confirm({
+                        title: "Are you sure ?",
+                        content: `Password of ${account.displayName} will be modified !`,
+                        okType: "danger",
+                        onOk() {
+                            get(`/account/resetPass/${account.accountId}`).then(({ message: pass }) => Modal.confirm({
+                                title: "Success !",
+                                content: `New password of [${account.displayName}] is [${pass}]`
+                            })).catch(err => alert(err))
+                        }
+                    })
+                }
+            },
+            deleteAccount(account) {
+                if (account && account.accountId) {
+                    Modal.confirm({
+                        title: "Are you sure ?",
+                        content: h("p", { style: "color:red;"}, `All data about account [${account.displayName}] will lost !!!`),
+                        okType: "danger",
+                        onOk: () => {
+                            get(`/account/delete/${account.accountId}`)
+                                .then(() => {
+                                    message.success(`Account [${account.displayName}] deleted !`)
+                                    this.listAccount()
+                                })
+                                .catch(err => alert(err))
+                        }
+                    })
+                }
+            }
+        }
+    }
+</script>

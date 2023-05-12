@@ -5,7 +5,7 @@ import org.coodex.openai.api.server.util.IDGenerator;
 
 @Entity
 @Table(name = "t_account_role", indexes = {
-        @Index(name = "i_ar_accountId", columnList = "accountId")
+        @Index(name = "i_ar_accountRole", columnList = "accountId, role")
 })
 public class AccountRoleEntity {
     @Id
