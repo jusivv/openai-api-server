@@ -1,4 +1,4 @@
-package org.coodex.openai.api.server.component;
+package org.coodex.openai.api.server.domain;
 
 import jakarta.servlet.http.HttpSession;
 import org.coodex.openai.api.server.data.entity.ChatContextEntity;

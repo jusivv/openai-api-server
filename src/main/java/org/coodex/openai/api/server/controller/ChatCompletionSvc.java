@@ -4,7 +4,7 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import org.coodex.openai.api.server.component.ConversationLoader;
+import org.coodex.openai.api.server.domain.ConversationLoader;
 import org.coodex.openai.api.server.data.entity.ChatContextEntity;
 import org.coodex.openai.api.server.data.repo.ChatContextRepo;
 import org.coodex.openai.api.server.data.repo.ChatMessageRepo;

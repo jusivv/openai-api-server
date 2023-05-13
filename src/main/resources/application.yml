@@ -51,5 +51,9 @@ app:
   token:
     expire-days: ${TOKEN_EXPIRE_DAYS:10}
     key: "${TOKEN_AES_KEY:WDa5x1+/y3NagFX22jcUsQ==}"
-  useWatermark: ${APP_USE_WATERMARK:false}
+  useWatermark: ${USE_WATERMARK:false}
+  login:
+    retry:
+      limit: ${LOGIN_RETRY_LIMIT:5}
+      freeze: ${LOGIN_RETRY_FREEZE:300}
 

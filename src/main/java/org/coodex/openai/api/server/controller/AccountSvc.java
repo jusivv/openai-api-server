@@ -8,10 +8,9 @@ import jakarta.validation.constraints.NotBlank;
 import org.coodex.openai.api.server.data.entity.AccountEntity;
 import org.coodex.openai.api.server.data.entity.AccountRoleEntity;
 import org.coodex.openai.api.server.data.entity.ChatContextEntity;
-import org.coodex.openai.api.server.data.repo.AccountRepo;
-import org.coodex.openai.api.server.data.repo.AccountRoleRepo;
-import org.coodex.openai.api.server.data.repo.ChatContextRepo;
-import org.coodex.openai.api.server.data.repo.ChatMessageRepo;
+import org.coodex.openai.api.server.data.repo.*;
+import org.coodex.openai.api.server.domain.AccountHealthChecker;
+import org.coodex.openai.api.server.domain.HttpSessionHolder;
 import org.coodex.openai.api.server.model.*;
 import org.coodex.openai.api.server.util.BCryptHelper;
 import org.coodex.openai.api.server.util.Const;
@@ -38,14 +37,14 @@ import java.util.Set;
 public class AccountSvc {
     @Value("${app.token.expire-days}")
     private int tokenExpireDays;
-
     private byte[] tokenKey;
-
     private AccountRepo accountRepo;
     private AccountRoleRepo accountRoleRepo;
     private ChatContextRepo chatContextRepo;
     private ChatMessageRepo chatMessageRepo;
     private ObjectMapper objectMapper;
+    private HttpSessionHolder sessionHolder;
+    private AccountHealthChecker accountHealthChecker;
 
     private Base64.Encoder base64Encoder = Base64.getEncoder();
     private Base64.Decoder base64Decoder = Base64.getDecoder();
@@ -53,12 +52,15 @@ public class AccountSvc {
     @Autowired
     public AccountSvc(AccountRepo accountRepo, AccountRoleRepo accountRoleRepo, ObjectMapper objectMapper,
                       ChatContextRepo chatContextRepo, ChatMessageRepo chatMessageRepo,
+                      HttpSessionHolder sessionHolder, AccountHealthChecker accountHealthChecker,
                       @Value("${app.token.key}") String tokenKey) {
         this.accountRepo = accountRepo;
         this.accountRoleRepo = accountRoleRepo;
         this.objectMapper = objectMapper;
         this.chatContextRepo = chatContextRepo;
         this.chatMessageRepo = chatMessageRepo;
+        this.sessionHolder = sessionHolder;
+        this.accountHealthChecker = accountHealthChecker;
         this.tokenKey = base64Decoder.decode(tokenKey);
     }
 
@@ -79,7 +81,13 @@ public class AccountSvc {
         AccountEntity accountEntity = accountRepo.getByAccountName(req.getName())
                 .orElseThrow(() -> new RuntimeException("failed to login"));
         Assert.isTrue(!accountEntity.isLocked(), "your account is locked by admin");
-        Assert.isTrue(BCryptHelper.verify(req.getPass(), accountEntity.getAccountPass()), "fail to login");
+        accountHealthChecker.check(accountEntity.getAccountId());
+        if (!BCryptHelper.verify(req.getPass(), accountEntity.getAccountPass())) {
+            accountHealthChecker.authenticationFailed(accountEntity.getAccountId());
+            throw new RuntimeException("fail to login");
+        }
+        accountHealthChecker.authenticationSuccessful(accountEntity.getAccountId());
+        sessionHolder.kickOut(accountEntity.getAccountId());
         buildSession(accountEntity, session);
         LoginResp resp = new LoginResp();
         resp.setSessionId(session.getId());
@@ -232,5 +240,4 @@ public class AccountSvc {
             return resp;
         });
     }
-
 }

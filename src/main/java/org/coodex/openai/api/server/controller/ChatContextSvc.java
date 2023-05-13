@@ -2,7 +2,7 @@ package org.coodex.openai.api.server.controller;
 
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.servlet.http.HttpSession;
-import org.coodex.openai.api.server.component.ConversationLoader;
+import org.coodex.openai.api.server.domain.ConversationLoader;
 import org.coodex.openai.api.server.data.entity.ChatContextEntity;
 import org.coodex.openai.api.server.data.entity.ChatMessageEntity;
 import org.coodex.openai.api.server.data.repo.ChatContextRepo;
