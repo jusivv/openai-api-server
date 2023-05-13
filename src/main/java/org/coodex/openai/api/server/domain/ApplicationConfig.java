@@ -20,4 +20,7 @@ public class ApplicationConfig {
 
     @Value("${app.useWatermark}")
     public boolean useWatermark;
+
+    @Value("${app.serverUrl}")
+    public String serverUrl;
 }

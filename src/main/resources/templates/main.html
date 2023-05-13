@@ -2,6 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <base th:if="${@appConfig.serverUrl != ''}" th:href="${@appConfig.serverUrl}">
     <title>[[${@appConfig.title}]]</title>
     <link rel="stylesheet" href="/app/chat.css">
     <link rel="stylesheet" href="/highlight/default.min.css">
@@ -21,7 +22,7 @@
     <script src="/antd/antd.min.js"></script>
 </head>
 <body>
-<div id="app" style="min-height: 100%; margin: 0px; padding: 0px">
+<div id="app" style="min-height: 100%; margin: 0px; padding: 0px; background-color: #f0f2f5">
     <router-view></router-view>
 </div>
 <script type="module">
