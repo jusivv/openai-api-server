@@ -40,9 +40,10 @@ java -jar openai-api-server-0.1.0.jar -server.port=8080 -server.address=127.0.0.
 
 ### App
 
-- SERVER_URL: URL of your server, default: 'http://localhost:8080'
+- SERVER_URL: URL of your server, default none
 - APP_TITLE: Web title, default 'ChatGPT'
 - APP_VERSION: app version, default 'Beta'
+- SQLITE_FILE: sqlite db file location, default 'db.sqlite'
 - ADMIN_USER: initialized administrator name, default 'admin'
 - ADMIN_PASS: initialized administrator password, default none, means auto generation
 - TOKEN_EXPIRE_DAYS: token expire days, default 10
