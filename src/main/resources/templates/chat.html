@@ -95,7 +95,6 @@ export default {
             totalTokens: 0,
             conversationList: [],
             working: false,
-            lastContentHeight: 0,
             showMarkdown: false,
             useStream: true,
             imgWater: null
@@ -141,20 +140,16 @@ export default {
                 .then(data => this.conversationList = data)
                 .catch(err => console.log("get context list failed, %s", err))
         },
-        getContentHeight() {
-            let div = this.$refs["chat-content"]
-            if (div) {
-                return div.scrollHeight
-            } else {
-                return 0
-            }
-        },
         flushContent() {
             hljs.highlightAll()
-            let layout = this.$refs["chat-layout"]
+            let layout = document.getElementById("chat-layout")
             let content = this.$refs["chat-content"]
-            if (layout.offsetHeight < content.scrollHeight) {
-                layout.scrollTo({ top: this.lastContentHeight, behavior: 'smooth' });
+            if (layout && content) {
+                let targetY = content.children.length > 0 ?
+                    content.offsetHeight - content.children[content.children.length - 1].offsetHeight : 0
+                if (layout.offsetHeight < content.offsetHeight) {
+                    layout.scrollTo({ top: targetY, behavior: 'smooth' });
+                }
             }
         },
         parseHtml(src) {
@@ -204,8 +199,6 @@ export default {
         ask(content, conversationId) {
             this.useLoadingState = true
             if (content && conversationId) {
-                // record Y
-                this.lastContentHeight = this.getContentHeight()
                 // push question
                 this.messages.push({
                     isAnswer: false,
@@ -234,7 +227,6 @@ export default {
         askWithSse(content, conversationId){
             this.useLoadingState = false
             if (content && conversationId) {
-                this.lastContentHeight = this.getContentHeight()
                 this.messages.push({
                     isAnswer: false,
                     content
