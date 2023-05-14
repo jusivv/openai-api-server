@@ -11,7 +11,9 @@
                                       :type="c.contextId === conversationId ? 'primary' : ''"
                                       block
                                       @click="switchConversation(c.contextId)">
-                                {{c.contextTitle || "New conversation"}}
+                                <div :style="{'overflow': 'hidden', 'text-overflow': 'ellipsis'}">
+                                    {{c.contextTitle || "New conversation"}}
+                                </div>
                             </a-button>
                         </a-space>
                     </a-layout-content>
