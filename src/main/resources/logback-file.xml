@@ -21,14 +21,13 @@
     </appender>
 
 
-    <root level="${LOGBACK_ROOT_LEVEL:-WARN}" additivity="false">
+    <root level="${LOGBACK_ROOT_LEVEL:-INFO}" additivity="false">
         <appender-ref ref="FILE" />
     </root>
-
-    <logger name="com.dachengsoft" level="${LOGBACK_DCSOFT_LEVEL:-WARN}" additivity="false">
+    <logger name="org.coodex" level="${LOGBACK_COODEX_LEVEL:-INFO}" additivity="false">
         <appender-ref ref="FILE" />
     </logger>
-    <logger name="org.coodex" level="${LOGBACK_COODEX_LEVEL:-WARN}" additivity="false">
+    <logger name="com.dachengsoft" level="${LOGBACK_DCSOFT_LEVEL:-INFO}" additivity="false">
         <appender-ref ref="FILE" />
     </logger>
 </configuration>
