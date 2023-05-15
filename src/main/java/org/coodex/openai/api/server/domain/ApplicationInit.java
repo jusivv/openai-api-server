@@ -7,7 +7,6 @@ import org.coodex.openai.api.server.data.repo.AccountRepo;
 import org.coodex.openai.api.server.data.repo.AccountRoleRepo;
 import org.coodex.openai.api.server.util.BCryptHelper;
 import org.coodex.openai.api.server.util.Const;
-import org.coodex.openai.api.server.util.IDGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,11 +24,14 @@ public class ApplicationInit {
 
     private AccountRepo accountRepo;
     private AccountRoleRepo accountRoleRepo;
+    private PasswordGenerator passwordGenerator;
 
     @Autowired
-    public ApplicationInit(AccountRepo accountRepo, AccountRoleRepo accountRoleRepo) {
+    public ApplicationInit(AccountRepo accountRepo, AccountRoleRepo accountRoleRepo,
+                           PasswordGenerator passwordGenerator) {
         this.accountRepo = accountRepo;
         this.accountRoleRepo = accountRoleRepo;
+        this.passwordGenerator = passwordGenerator;
     }
 
     @PostConstruct
@@ -55,7 +57,7 @@ public class ApplicationInit {
         if (!pass.equals("")) {
             return pass;
         } else {
-            return IDGenerator.genId();
+            return passwordGenerator.generate();
         }
     }
 }

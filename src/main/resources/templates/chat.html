@@ -11,7 +11,7 @@
                                       :type="c.contextId === conversationId ? 'primary' : ''"
                                       block
                                       @click="switchConversation(c.contextId)">
-                                <div :style="{'overflow': 'hidden', 'text-overflow': 'ellipsis'}">
+                                <div :title="c.contextTitle || 'New conversation'" :style="{'overflow': 'hidden', 'text-overflow': 'ellipsis'}">
                                     {{c.contextTitle || "New conversation"}}
                                 </div>
                             </a-button>
@@ -61,7 +61,7 @@
                 </a-layout-content>
                 <a-layout-footer :style="{padding: '10px'}">
                     <a-input-group compact>
-                        <a-textarea v-model:value="question" :placeholder="questionPlaceholder" style="width: calc(100% - 140px); height: 60px" :disabled="working"></a-textarea>
+                        <a-textarea v-model:value="question" :placeholder="questionPlaceholder" style="width: calc(100% - 140px); height: 60px" :disabled="working" @keyup.ctrl.enter="send"></a-textarea>
                         <a-button type="primary" style="height: 60px" :disabled="!canSend" @click="send">Send</a-button>
                         <a-popconfirm
                                 title="Delete this conversation ?"
@@ -108,7 +108,7 @@ export default {
             return question.trim().length > 0 && !working && conversationId
         },
         questionPlaceholder() {
-            return this.conversationId ? "Let's talk about ..." : "Click [New chat] or select existing conversation !"
+            return this.conversationId ? "Let's talk about ... (Send message with Ctrl + Enter)" : "Click [New chat] or select existing conversation !"
         },
         mdContent() {
             const { messages } = this
