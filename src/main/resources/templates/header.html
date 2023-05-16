@@ -193,6 +193,11 @@
                             sessionStorage.removeItem("sessionId")
                             localStorage.removeItem("token")
                             this.$router.push("/login")
+                        }).catch(err => {
+                            alert(err)
+                            sessionStorage.removeItem("sessionId")
+                            localStorage.removeItem("token")
+                            this.$router.push("/login")
                         })
                     }
                 })
