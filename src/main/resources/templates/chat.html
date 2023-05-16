@@ -22,8 +22,8 @@
                             <a-button type="primary" block ghost @click="newChat">New chat</a-button>
                             <a-button type="primary" block ghost danger>Clear all</a-button>
                             <a-space>
-                                <a-switch v-model:checked="showMarkdown" checked-children="M" un-checked-children="H"></a-switch>
-                                <a-switch v-model:checked="useStream" checked-children="S" un-checked-children="N"></a-switch>
+                                <a-switch title="HTML or Markdown" v-model:checked="showMarkdown" checked-children="M" un-checked-children="H"></a-switch>
+                                <a-switch title="Use SSE or not" v-model:checked="useStream" checked-children="S" un-checked-children="N"></a-switch>
                             </a-space>
                         </a-space>
                     </a-layout-footer>
@@ -45,7 +45,6 @@
                                 </a-avatar>
                                 ({{ message.time || now() }})
                             </div>
-<!--                                <div class="speaker">{{message.isAnswer ? 'ChatGPT:' : 'Me:'}}&nbsp;({{now()}})</div>-->
                             <div v-if="message.isAnswer" style="padding-left: 40px" v-html="parseHtml(message.content)">
                             </div>
                             <div v-else  style="padding-left: 40px">{{message.content}}</div>
@@ -56,7 +55,7 @@
                         </div>
                     </div>
                     <div :hidden="!showMarkdown" style="height: 100%">
-                        <textarea style="height: 100%; width: 100%">{{mdContent}}</textarea>
+                        <textarea id="chat-textarea" style="height: 100%; width: 100%">{{mdContent}}</textarea>
                     </div>
                 </a-layout-content>
                 <a-layout-footer :style="{padding: '10px'}">
