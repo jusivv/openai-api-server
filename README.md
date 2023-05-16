@@ -47,7 +47,7 @@ java -jar openai-api-server-0.1.0.jar -server.port=8080 -server.address=127.0.0.
 - ADMIN_USER: initialized administrator name, default 'admin'
 - ADMIN_PASS: initialized administrator password, default none, means auto generation
 - TOKEN_EXPIRE_DAYS: token expire days, default 10
-- TOKEN_AES_KEY: token encrypt key, default 'WDa5x1+/y3NagFX22jcUsQ=='
+- TOKEN_AES_KEY: token encrypt key, default 'WDa5x1+/y3NagFX22jcUsQ==' (just for test)
 - USE_WATERMARK: use watermark, default false
 - LOGIN_RETRY_LIMIT: limit of login retry, default 5 times
 - LOGIN_RETRY_FREEZE: freeze time in seconds when exceeding retry limit, default 300 seconds
