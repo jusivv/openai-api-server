@@ -17,6 +17,9 @@ spring:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
     database-platform: org.hibernate.community.dialect.SQLiteDialect
 
+logging:
+  config: classpath:logback-${LOG_CONFIG:spring}.xml
+
 openai:
   apiKey: ${OPENAI_API_KEY:}
   model: ${OPENAI_MODEL:gpt-3.5-turbo}

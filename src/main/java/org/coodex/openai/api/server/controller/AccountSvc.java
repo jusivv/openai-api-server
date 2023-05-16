@@ -8,14 +8,17 @@ import jakarta.validation.constraints.NotBlank;
 import org.coodex.openai.api.server.data.entity.AccountEntity;
 import org.coodex.openai.api.server.data.entity.AccountRoleEntity;
 import org.coodex.openai.api.server.data.entity.ChatContextEntity;
-import org.coodex.openai.api.server.data.repo.*;
+import org.coodex.openai.api.server.data.repo.AccountRepo;
+import org.coodex.openai.api.server.data.repo.AccountRoleRepo;
+import org.coodex.openai.api.server.data.repo.ChatContextRepo;
+import org.coodex.openai.api.server.data.repo.ChatMessageRepo;
 import org.coodex.openai.api.server.domain.AccountHealthChecker;
 import org.coodex.openai.api.server.domain.HttpSessionHolder;
+import org.coodex.openai.api.server.domain.PasswordGenerator;
 import org.coodex.openai.api.server.model.*;
 import org.coodex.openai.api.server.util.BCryptHelper;
 import org.coodex.openai.api.server.util.Const;
 import org.coodex.openai.api.server.util.EncryptHelper;
-import org.coodex.openai.api.server.util.IDGenerator;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,6 +48,7 @@ public class AccountSvc {
     private ObjectMapper objectMapper;
     private HttpSessionHolder sessionHolder;
     private AccountHealthChecker accountHealthChecker;
+    private PasswordGenerator passwordGenerator;
 
     private Base64.Encoder base64Encoder = Base64.getEncoder();
     private Base64.Decoder base64Decoder = Base64.getDecoder();
@@ -53,6 +57,7 @@ public class AccountSvc {
     public AccountSvc(AccountRepo accountRepo, AccountRoleRepo accountRoleRepo, ObjectMapper objectMapper,
                       ChatContextRepo chatContextRepo, ChatMessageRepo chatMessageRepo,
                       HttpSessionHolder sessionHolder, AccountHealthChecker accountHealthChecker,
+                      PasswordGenerator passwordGenerator,
                       @Value("${app.token.key}") String tokenKey) {
         this.accountRepo = accountRepo;
         this.accountRoleRepo = accountRoleRepo;
@@ -61,6 +66,7 @@ public class AccountSvc {
         this.chatMessageRepo = chatMessageRepo;
         this.sessionHolder = sessionHolder;
         this.accountHealthChecker = accountHealthChecker;
+        this.passwordGenerator = passwordGenerator;
         this.tokenKey = base64Decoder.decode(tokenKey);
     }
 
@@ -154,7 +160,7 @@ public class AccountSvc {
                 "Duplicate account name");
         AccountEntity accountEntity = new AccountEntity();
         BeanUtils.copyProperties(req, accountEntity,"admin");
-        String pass = IDGenerator.genId();
+        String pass = passwordGenerator.generate();
         accountEntity.setAccountPass(BCryptHelper.hash(pass));
         accountRepo.save(accountEntity);
         Set<AccountRoleEntity> roles = new HashSet<>();
@@ -203,7 +209,7 @@ public class AccountSvc {
     @RolesAllowed({Const.ROLE_ADMIN})
     public CommonResp resetPass(@PathVariable("accountId") @NotBlank String accountId) {
         AccountEntity accountEntity = accountRepo.getReferenceById(accountId);
-        String pass = IDGenerator.genId();
+        String pass = passwordGenerator.generate();
         accountEntity.setAccountPass(BCryptHelper.hash(pass));
         accountRepo.save(accountEntity);
         return CommonResp.build(200, pass);

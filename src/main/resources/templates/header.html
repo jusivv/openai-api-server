@@ -119,6 +119,10 @@
                     if (chatLayout) {
                         chatLayout.style.backgroundImage = `url(${watermark})`
                     }
+                    const chatTextarea = document.getElementById("chat-textarea")
+                    if (chatTextarea) {
+                        chatTextarea.style.backgroundImage = `url(${watermark})`
+                    }
                 }
             }).catch(err => alert(err))
         },
