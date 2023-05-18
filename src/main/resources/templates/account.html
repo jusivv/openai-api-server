@@ -88,7 +88,7 @@
     const { loadModule } = window["vue3-sfc-loader"]
     import options from "/app/vue-sfc-loader-options.js"
     const { Modal, message } = antd
-    const { h, isProxy, toRaw } = Vue
+    const { h } = Vue
     export default {
         name: "Account",
         components: {
@@ -209,10 +209,7 @@
                             this.confirmLoading = false
                             message.success("Account updated !")
                             if (this.editAccount) {
-                                this.editAccount.accountName = accountName
-                                this.editAccount.displayName = displayName
-                                this.editAccount.admin = admin
-                                this.editAccount.location = locked
+                                Object.assign(this.editAccount, this.formAccount)
                             }
                         }).catch(err => {
                             this.confirmLoading = false
