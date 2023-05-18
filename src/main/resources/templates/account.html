@@ -140,6 +140,7 @@
                 formAccount: {
                     ...this.emptyAccount
                 },
+                editAccount: null,
                 page: {
                     current: 1,
                     total: 0,
@@ -175,13 +176,16 @@
                         total: totalElements,
                         size
                     }
-                    console.log("account page: %o", page)
                 })
             },
             showEditForm(account) {
                 if(account) {
-                    this.formAccount = account
+                    this.editAccount = account
+                    this.formAccount = {
+                        ...this.editAccount
+                    }
                 } else {
+                    this.editAccount = null
                     this.formAccount = {
                         ...this.emptyAccount
                     }
@@ -204,6 +208,9 @@
                             this.editFormVisible = false
                             this.confirmLoading = false
                             message.success("Account updated !")
+                            if (this.editAccount) {
+                                Object.assign(this.editAccount, this.formAccount)
+                            }
                         }).catch(err => {
                             this.confirmLoading = false
                             alert(err)

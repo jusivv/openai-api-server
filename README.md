@@ -32,7 +32,7 @@ java -jar openai-api-server-0.1.0.jar -server.port=8080 -server.address=127.0.0.
 - OPENAI_SERVER_BASE_PATH: OpenAI API context path, default 'v1'
 - OPENAI_PROXY_TYPE: set proxy type, http, https or socket ..,
 - OPENAI_PROXY_HOST: proxy host
-- =OPENAI_PROXY_PORT: proxy port
+- OPENAI_PROXY_PORT: proxy port
 - OPENAI_PROXY_USER: proxy authentication username
 - OPENAI_PROXY_PASS: proxy authentication password
 - OPENAI_CHAT_TITLE_PROMPT: prompt for summarizing conversation, default 'Please generate a four to five word title summarizing our conversation without any lead-in, punctuation, quotation marks, periods, symbols, or additional text. Remove enclosing quotation marks.'
