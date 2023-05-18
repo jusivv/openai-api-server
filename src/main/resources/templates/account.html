@@ -88,7 +88,7 @@
     const { loadModule } = window["vue3-sfc-loader"]
     import options from "/app/vue-sfc-loader-options.js"
     const { Modal, message } = antd
-    const { h } = Vue
+    const { h, isProxy, toRaw } = Vue
     export default {
         name: "Account",
         components: {
@@ -140,6 +140,7 @@
                 formAccount: {
                     ...this.emptyAccount
                 },
+                editAccount: null,
                 page: {
                     current: 1,
                     total: 0,
@@ -175,13 +176,16 @@
                         total: totalElements,
                         size
                     }
-                    console.log("account page: %o", page)
                 })
             },
             showEditForm(account) {
                 if(account) {
-                    this.formAccount = account
+                    this.editAccount = account
+                    this.formAccount = {
+                        ...this.editAccount
+                    }
                 } else {
+                    this.editAccount = null
                     this.formAccount = {
                         ...this.emptyAccount
                     }
@@ -204,6 +208,12 @@
                             this.editFormVisible = false
                             this.confirmLoading = false
                             message.success("Account updated !")
+                            if (this.editAccount) {
+                                this.editAccount.accountName = accountName
+                                this.editAccount.displayName = displayName
+                                this.editAccount.admin = admin
+                                this.editAccount.location = locked
+                            }
                         }).catch(err => {
                             this.confirmLoading = false
                             alert(err)

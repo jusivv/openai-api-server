@@ -20,6 +20,9 @@ spring:
 logging:
   config: classpath:logback-${LOG_CONFIG:spring}.xml
 
+server:
+  max-http-request-header-size: ${MAX_REQUEST_HEADER_SIZE:100KB}
+
 openai:
   apiKey: ${OPENAI_API_KEY:}
   model: ${OPENAI_MODEL:gpt-3.5-turbo}
@@ -59,4 +62,3 @@ app:
     retry:
       limit: ${LOGIN_RETRY_LIMIT:5}
       freeze: ${LOGIN_RETRY_FREEZE:300}
-
